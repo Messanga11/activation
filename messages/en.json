@@ -1,0 +1,27 @@
+{
+  "login": {
+    "title": "Login to your account",
+    "description": "Enter your email below to login to your account",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot Password?",
+    "login": "Login",
+    "login_successful": "Login successful"
+  },
+  "Validators": {
+    "required": "Required",
+    "required_string": "Required",
+    "invalidCardNumber": "Invalid card number",
+    "mustBeNumber": "Must be a number",
+    "invalidPostalCode": "Invalid postal code",
+    "invalidHostname": "Invalid hostname",
+    "invalidPassword": "Invalid password",
+    "passwordsDontMatch": "Passwords don't match",
+    "invalidTvaNumber": "Invalid TVA number",
+    "invalidSirenSiret": "Invalid Siren/Siret number",
+    "email": "Invalid email"
+  },
+  "form": {
+    "placeholder_enter_model": "Enter something"
+  }
+}

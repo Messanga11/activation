@@ -1,0 +1,312 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  SUPERVISOR
+  STORE_MANAGER
+  TEAM_LEADER
+  ACTIVATOR
+  BA
+}
+
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  image         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  role          UserRole @default(BA)
+
+  // Team hierarchy
+  teamLeader   User?   @relation("TeamHierarchy", fields: [teamLeaderId], references: [id])
+  teamLeaderId String?
+  teamMembers  User[]  @relation("TeamHierarchy")
+
+  // Authentication
+  sessions Session[]
+  accounts Account[]
+
+  // Organization memberships
+  members     Member[]
+  invitations Invitation[]
+
+  @@map("users")
+}
+
+model Session {
+  id                   String   @id @default(cuid())
+  expiresAt            DateTime
+  token                String   @unique
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  ipAddress            String?
+  userAgent            String?
+  userId               String
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activeOrganizationId String?
+
+  @@map("sessions")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@unique([providerId, accountId])
+  @@map("accounts")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("verifications")
+}
+
+model Organization {
+  id                          String                       @id @default(cuid())
+  name                        String
+  slug                        String?                      @unique
+  logo                        String?
+  createdAt                   DateTime                     @default(now())
+  metadata                    String?
+  members                     Member[]
+  invitations                 Invitation[]
+  simSales                    SimSale[]
+  dsm                         Dsm[]
+  pos                         Pos[]
+  simCount                    Int?
+  simOrganizationTransactions SimOrganizationTransaction[]
+
+  @@map("organizations")
+}
+
+model Member {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           UserRole     @default(BA)
+  cni            String       @unique
+  blueNumber     String       @unique
+  otherNumber    String       @unique
+  createdAt      DateTime     @default(now())
+
+  // Relations with SimSale
+  baSales         SimSale[] @relation("BASales")
+  teamLeaderSales SimSale[] @relation("TeamLeaderSales")
+
+  // Relations with Pos
+  baPos           Pos[]            @relation("BAPos")
+  teamLeaderPos   Pos[]            @relation("TeamLeaderPos")
+  simTransactions SimTransaction[]
+
+  // Relations with SimOrganizationTransaction
+  memberSimOrganizationTransactions     SimOrganizationTransaction[] @relation("MemberSimOrganizationTransaction")
+  teamLeaderSimOrganizationTransactions SimOrganizationTransaction[] @relation("TeamLeaderSimOrganizationTransaction")
+
+  DsmTopUp DsmTopUp[]
+  PosTopUp PosTopUp[]
+
+  simCount Int?
+
+  // Relations with SimTransactionBaTeamLeader
+  baSimTransactionBaTeamLeader         SimTransactionBaTeamLeader[] @relation("BaSimTransactionBaTeamLeader")
+  teamLeaderSimTransactionBaTeamLeader SimTransactionBaTeamLeader[] @relation("TeamLeaderSimTransactionBaTeamLeader")
+  memberSimTransactionBaTeamLeader     SimTransactionBaTeamLeader[] @relation("MemberSimTransactionBaTeamLeader")
+
+  @@unique([organizationId, userId])
+  @@map("members")
+}
+
+model Invitation {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  email          String
+  role           UserRole?
+  status         String
+  expiresAt      DateTime
+  inviterId      String
+  inviter        User         @relation(fields: [inviterId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+
+  @@map("invitations")
+}
+
+model SimSale {
+  id             String       @id @default(cuid())
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  blueNumber     String
+  otherNumber    String
+  customerName   String
+  cni            String
+  address        String
+  imei           String
+  iccid          String
+
+  // BA relation
+  baId String
+  ba   Member @relation("BASales", fields: [baId], references: [id], onDelete: Cascade)
+
+  // Team Leader relation
+  teamLeaderId String
+  teamLeader   Member @relation("TeamLeaderSales", fields: [teamLeaderId], references: [id], onDelete: Cascade)
+
+  @@map("sim_sales")
+}
+
+model Dsm {
+  id             String       @id @default(cuid())
+  number         String
+  pos            Pos[]
+  topUps         DsmTopUp[]
+  posTopUps      PosTopUp[]
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  amount         Float
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@map("dsm")
+}
+
+model DsmTopUp {
+  id             String   @id @default(cuid())
+  amount         Float
+  previousAmount Float
+  dsmId          String
+  // who made the transaction
+  memberId       String
+  member         Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  dsm            Dsm      @relation(fields: [dsmId], references: [id], onDelete: Cascade)
+  observations   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("dsm_top_ups")
+}
+
+model PosTopUp {
+  id             String   @id @default(cuid())
+  amount         Float
+  dsmId          String
+  // who made the transaction
+  memberId       String
+  blueNumber     String
+  previousAmount Float
+  member         Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  dsm            Dsm      @relation(fields: [dsmId], references: [id], onDelete: Cascade)
+  posId          String
+  pos            Pos      @relation(fields: [posId], references: [id], onDelete: Cascade)
+  observations   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("pos_top_ups")
+}
+
+enum PosType {
+  OFFICE
+  CUSTOMER
+}
+
+model Pos {
+  id             String       @id @default(cuid())
+  blueNumber     String
+  cni            String
+  address        String
+  otherNumber    String
+  holderName     String
+  kyc            String
+  dsmId          String
+  type           PosType
+  dsm            Dsm          @relation(fields: [dsmId], references: [id], onDelete: Cascade)
+  topUps         PosTopUp[]
+  amount         Float
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  baId           String
+  ba             Member       @relation("BAPos", fields: [baId], references: [id], onDelete: Cascade)
+  teamLeaderId   String
+  teamLeader     Member       @relation("TeamLeaderPos", fields: [teamLeaderId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@map("pos")
+}
+
+model SimTransaction {
+  id        String   @id @default(cuid())
+  range     String
+  quantity  Int
+  memberId  String
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sim_transactions")
+}
+
+model SimOrganizationTransaction {
+  id             String       @id @default(cuid())
+  range          String
+  quantity       Int
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  memberId       String
+  member         Member       @relation("MemberSimOrganizationTransaction", fields: [memberId], references: [id], onDelete: Cascade)
+  teamLeaderId   String
+  teamLeader     Member       @relation("TeamLeaderSimOrganizationTransaction", fields: [teamLeaderId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@map("sim_organization_transactions")
+}
+
+model SimTransactionBaTeamLeader {
+  id           String   @id @default(cuid())
+  range        String
+  quantity     Int
+  memberId     String
+  member       Member   @relation("MemberSimTransactionBaTeamLeader", fields: [memberId], references: [id], onDelete: Cascade)
+  teamLeaderId String
+  teamLeader   Member   @relation("TeamLeaderSimTransactionBaTeamLeader", fields: [teamLeaderId], references: [id], onDelete: Cascade)
+  baId         String
+  ba           Member   @relation("BaSimTransactionBaTeamLeader", fields: [baId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("sim_transactions_ba_team_leader")
+}
