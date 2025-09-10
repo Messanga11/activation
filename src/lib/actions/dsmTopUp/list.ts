@@ -3,12 +3,11 @@
 
 import { dsmTopUpListSchema } from "@/lib/validations/dsmTopUp";
 import { getDsmTopUps } from "@/lib/dal/dsmTopUp";
-import { getSession, requireSupervisor } from "@/lib/auth/role";
+import { requireSupervisor } from "@/lib/auth/role";
 
 export async function getDsmTopUpsAction(input: unknown) {
   try {
     const validatedData = dsmTopUpListSchema.parse(input);
-    const session = await getSession();
 
     await requireSupervisor();
 

@@ -23,7 +23,11 @@ export default function OrganizationDsmPage() {
           accessorKey: "number",
         },
         {
-          header: "Montant",
+          header: "Total Appro.",
+          accessorKey: "totalPrevious",
+        },
+        {
+          header: "Montant restant",
           accessorKey: "amount",
         },
         {

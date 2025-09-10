@@ -111,8 +111,8 @@ export const getDsms = async (
     where.OR = [{ number: { contains: search, mode: "insensitive" } }];
   }
 
-  const [dsms, total] = await Promise.all([
-    db.dsm.findMany({
+  const { dsms, total } = await db.$transaction(async (tx) => {
+    const _dsms = await tx.dsm.findMany({
       where,
       skip,
       take: limit,
@@ -127,9 +127,28 @@ export const getDsms = async (
           },
         },
       },
-    }),
-    db.dsm.count({ where }),
-  ]);
+    });
+
+    const dsms = [];
+    for (const dsm of _dsms) {
+      const lastTransaction = await tx.dsmTopUp.findFirst({
+        where: { dsmId: dsm.id },
+        orderBy: { createdAt: "desc" },
+      });
+      const totalPrevious =
+        (lastTransaction?.amount ?? 0) + (lastTransaction?.previousAmount ?? 0);
+      dsms.push({
+        ...dsm,
+        totalPrevious,
+        organization: {
+          ...dsm.organization,
+        },
+      });
+    }
+
+    const total = await tx.dsm.count({ where });
+    return { dsms, total };
+  });
 
   return {
     data: dsms,
