@@ -19,7 +19,7 @@ export default function OrganizationDsmTransactionsPage() {
           cell: (row) => row?.dsm?.number,
         },
         {
-          header: "Montant",
+          header: "Montant approvisionné",
           cell: (row) => row?.amount,
         },
 
