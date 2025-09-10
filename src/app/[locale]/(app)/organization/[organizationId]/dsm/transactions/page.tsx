@@ -42,7 +42,7 @@ export default function OrganizationDsmTransactionsPage() {
       // deleteAction={deleteMemberAction}
       formFields={{
         dsmId: {
-          label: "DSM",
+          label: "Master",
           type: "combobox",
           validator: v.string,
           props: {
