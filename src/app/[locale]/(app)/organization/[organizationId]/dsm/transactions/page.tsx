@@ -22,9 +22,14 @@ export default function OrganizationDsmTransactionsPage() {
           header: "Montant",
           cell: (row) => row?.amount,
         },
+
         {
           header: "Montant précédent",
           cell: (row) => row?.previousAmount,
+        },
+        {
+          header: "Total",
+          cell: (row) => (row?.amount ?? 0) + (row?.previousAmount ?? 0),
         },
         {
           header: "Date de transaction",
