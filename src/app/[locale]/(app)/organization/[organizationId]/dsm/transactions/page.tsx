@@ -24,7 +24,7 @@ export default function OrganizationDsmTransactionsPage() {
         },
 
         {
-          header: "Montant précédent",
+          header: "Montant précédent en stock",
           cell: (row) => row?.previousAmount,
         },
         {
