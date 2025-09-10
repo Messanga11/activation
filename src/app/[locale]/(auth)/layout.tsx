@@ -1,15 +1,18 @@
-import { authClient } from "@/lib/auth-client";
+import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { ROUTES } from "@/config/routes";
+import { headers } from "next/headers";
 
 export default async function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const user = await authClient.getSession();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
-  if (user) {
+  if (session) {
     return redirect(ROUTES.dashboard);
   }
 

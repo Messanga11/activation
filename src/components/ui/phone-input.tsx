@@ -24,7 +24,7 @@ interface PhoneInputStore {
 }
 
 const usePhoneInputStore = create<PhoneInputStore>((set) => ({
-  countryCode: "",
+  countryCode: "CM",
   setCountryCode: (countryCode) => set({ countryCode }),
 }));
 
@@ -83,38 +83,43 @@ const CountrySelector = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCountry?.code, store.countryCode]);
 
+  // useEffect(() => {
+  //   const findCountryCode = async () => {
+  //     if (store.countryCode) return;
+  //     try {
+  //       abortRef.current = new AbortController();
+  //       const res = await fetch("https://api.country.is/", {
+  //         signal: abortRef.current?.signal,
+  //       });
+
+  //       const data = await res.json();
+  //       abortRef.current = null;
+  //       if (data.country) {
+  //         store.setCountryCode(data.country);
+  //         onChange?.(data.country);
+  //       }
+  //     } catch (e) {
+  //       console.log(e);
+  //       abortRef.current = null;
+  //     }
+  //   };
+
+  //   findCountryCode();
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [store.countryCode]);
+
   useEffect(() => {
-    const findCountryCode = async () => {
-      if (store.countryCode) return;
-      try {
-        abortRef.current = new AbortController();
-        const res = await fetch("https://api.country.is/", {
-          signal: abortRef.current?.signal,
-        });
-
-        const data = await res.json();
-        abortRef.current = null;
-        if (data.country) {
-          store.setCountryCode(data.country);
-          onChange?.(data.country);
-        }
-      } catch (e) {
-        console.log(e);
-        abortRef.current = null;
-      }
-    };
-
-    findCountryCode();
+    if (!value) {
+      store.setCountryCode("CM");
+      onChange?.("CM");
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [store.countryCode]);
+  }, [value]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          aria-expanded={open}
-          className="font-normal text-base px-[28px] py-[14px] gap-[24px] h-[52px] md:min-w-[126px] text-white rounded-full bg-[#542583] hover:bg-[#542583] hover:bg-opacity-90"
-        >
+        <Button aria-expanded={open}>
           {selectedCountry ? (
             <>
               <span>+{selectedCountry.code}</span>
@@ -122,7 +127,7 @@ const CountrySelector = ({
           ) : (
             <span>Pays</span>
           )}
-          <div className="[&_svg]:h-[6px] [&_svg]:w-[9px]">
+          <div className="[&_svg]:h-[4px] [&_svg]:w-[4px]">
             <svg
               width="9"
               height="6"
@@ -155,6 +160,7 @@ const CountrySelector = ({
 
             <CommandGroup className="max-h-[300px] overflow-y-auto">
               {countryCodes
+                .filter((countryCode) => countryCode.iso === "CM")
                 .filter((c) =>
                   c.country.toLowerCase().includes((search ?? "").toLowerCase())
                 )

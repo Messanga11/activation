@@ -3,17 +3,13 @@
 import * as React from "react";
 import {
   IconCamera,
-  IconChartBar,
+  IconCpu,
   IconDashboard,
-  IconDatabase,
   IconFileAi,
   IconFileDescription,
-  IconFileWord,
-  IconFolder,
   IconHelp,
   IconInnerShadowTop,
   IconListDetails,
-  IconReport,
   IconSearch,
   IconSettings,
   IconUsers,
@@ -33,6 +29,9 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { ROUTES } from "@/config/routes";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { ModeToggle } from "./theme-toggle";
 
 const data = {
   user: {
@@ -40,31 +39,66 @@ const data = {
     email: "m@example.com",
     avatar: "/avatars/shadcn.jpg",
   },
-  navMain: [
+  navMain: (organizationId?: string) => [
     {
       title: "Dashboard",
-      url: ROUTES.dashboard,
+      path: ROUTES.organization("[organizationId]"),
+      url: ROUTES.organization(organizationId ?? ""),
       icon: IconDashboard,
     },
     {
-      title: "Organizations",
-      url: ROUTES.organizations,
-      icon: IconListDetails,
-    },
-    {
-      title: "Analytics",
-      url: "#",
-      icon: IconChartBar,
-    },
-    {
-      title: "Projects",
-      url: "#",
-      icon: IconFolder,
-    },
-    {
       title: "Team",
-      url: "#",
+      path: ROUTES.organizationTeam("[organizationId]"),
+      url: ROUTES.organizationTeam(organizationId ?? ""),
       icon: IconUsers,
+    },
+    {
+      title: "Vente SIM",
+      path: ROUTES.organizationSimSales("[organizationId]"),
+      url: ROUTES.organizationSimSales(organizationId ?? ""),
+      icon: IconCpu,
+    },
+    {
+      title: "Masters",
+      path: ROUTES.organizationDsm("[organizationId]"),
+      url: ROUTES.organizationDsm(organizationId ?? ""),
+      icon: IconCpu,
+    },
+    {
+      title: "Approvisionnement Masters",
+      path: ROUTES.organizationDsmTransactions("[organizationId]"),
+      url: ROUTES.organizationDsmTransactions(organizationId ?? ""),
+      icon: IconCpu,
+    },
+    {
+      title: "DSM",
+      path: ROUTES.organizationPos("[organizationId]"),
+      url: ROUTES.organizationPos(organizationId ?? ""),
+      icon: IconCpu,
+    },
+    {
+      title: "Transaction Masters vers DSM",
+      path: ROUTES.organizationTransactionDsmToPos("[organizationId]"),
+      url: ROUTES.organizationTransactionDsmToPos(organizationId ?? ""),
+      icon: IconCpu,
+    },
+    {
+      title: `Stock SIM RA`,
+      path: ROUTES.organizationTransactionSim("[organizationId]"),
+      url: ROUTES.organizationTransactionSim(organizationId ?? ""),
+      icon: IconCpu,
+    },
+    {
+      title: "Stock SIM RA vers Team Leader",
+      path: ROUTES.organizationTransactionSimTeamLeader("[organizationId]"),
+      url: ROUTES.organizationTransactionSimTeamLeader(organizationId ?? ""),
+      icon: IconCpu,
+    },
+    {
+      title: "Stock SIM Team Leader vers BA",
+      path: ROUTES.organizationTransactionSimBa("[organizationId]"),
+      url: ROUTES.organizationTransactionSimBa(organizationId ?? ""),
+      icon: IconCpu,
     },
   ],
   navClouds: [
@@ -134,24 +168,42 @@ const data = {
   ],
   documents: [
     {
-      name: "Data Library",
-      url: "#",
-      icon: IconDatabase,
+      title: "Dashboard",
+      url: ROUTES.dashboard,
+      icon: IconDashboard,
     },
     {
-      name: "Reports",
-      url: "#",
-      icon: IconReport,
+      title: "Organizations",
+      url: ROUTES.organizations,
+      icon: IconListDetails,
     },
     {
-      name: "Word Assistant",
-      url: "#",
-      icon: IconFileWord,
+      title: "Utilisateurs",
+      url: ROUTES.users,
+      icon: IconUsers,
     },
   ],
 };
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({
+  session,
+  ...props
+}: React.ComponentProps<typeof Sidebar> & {
+  organization?: boolean;
+  session: {
+    data: {
+      user: {
+        name: string;
+        email: string;
+        avatar: string;
+        role: string;
+        organization: { name: string };
+      };
+    };
+  };
+}) {
+  const { organizationId } = useParams();
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -161,21 +213,29 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               asChild
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
-              <a href="#">
+              <Link href="/">
                 <IconInnerShadowTop className="!size-5" />
-                <span className="text-base font-semibold">Acme Inc.</span>
-              </a>
+                <span className="text-base font-semibold">
+                  {session.data?.user?.organization?.name || "Acme Inc."}
+                </span>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain
+          items={data.navMain(organizationId as string)}
+          session={session}
+        />
         <NavDocuments items={data.documents} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        <NavSecondary items={data.navSecondary} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <ModeToggle />
+        <NavUser
+          user={session.data?.user || { name: "", email: "", avatar: "" }}
+        />
       </SidebarFooter>
     </Sidebar>
   );

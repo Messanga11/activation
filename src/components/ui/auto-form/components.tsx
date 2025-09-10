@@ -1,11 +1,12 @@
-import {
-  type ControllerFieldState,
-  type ControllerRenderProps,
-  type UseFormReturn,
-  type UseFormStateReturn,
+import type {
+  ControllerFieldState,
+  ControllerRenderProps,
+  UseFormReturn,
+  UseFormStateReturn,
 } from "react-hook-form";
 
-import { TComponent, type AutoFormField } from "./index";
+import type { AutoFormField } from "./index";
+import type { TComponent } from "./index";
 import { SvgAsset } from "../../svg-asset";
 import { Textarea } from "../textarea";
 import { AppSelect } from "../app-select";
@@ -14,6 +15,7 @@ import { PhoneInput } from "../phone-input";
 import { IconInput } from "../icon-input";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { DatePicker } from "@/components/date-picker";
 
 type FieldExtra = {
   placeholder: string;
@@ -63,6 +65,7 @@ const Password: ComponentRenderFunction = ({ field }, formField, extra) => {
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
             >
+              <title>Hide password</title>
               <path
                 d="M2.06202 12.348C1.97868 12.1235 1.97868 11.8765 2.06202 11.652C2.87372 9.68385 4.25153 8.00103 6.02079 6.81689C7.79004 5.63275 9.87106 5.00061 12 5.00061C14.129 5.00061 16.21 5.63275 17.9792 6.81689C19.7485 8.00103 21.1263 9.68385 21.938 11.652C22.0214 11.8765 22.0214 12.1235 21.938 12.348C21.1263 14.3161 19.7485 15.999 17.9792 17.1831C16.21 18.3672 14.129 18.9994 12 18.9994C9.87106 18.9994 7.79004 18.3672 6.02079 17.1831C4.25153 15.999 2.87372 14.3161 2.06202 12.348Z"
                 stroke="#4B5A6A"
@@ -91,6 +94,7 @@ const Password: ComponentRenderFunction = ({ field }, formField, extra) => {
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
           >
+            <title>Hide password</title>
             <path
               d="M2.586 17.414C2.2109 17.789 2.00011 18.2976 2 18.828V21C2 21.2652 2.10536 21.5195 2.29289 21.7071C2.48043 21.8946 2.73478 22 3 22H6C6.26522 22 6.51957 21.8946 6.70711 21.7071C6.89464 21.5195 7 21.2652 7 21V20C7 19.7348 7.10536 19.4804 7.29289 19.2929C7.48043 19.1053 7.73478 19 8 19H9C9.26522 19 9.51957 18.8946 9.70711 18.7071C9.89464 18.5195 10 18.2652 10 18V17C10 16.7348 10.1054 16.4804 10.2929 16.2929C10.4804 16.1053 10.7348 16 11 16H11.172C11.7024 15.9999 12.211 15.7891 12.586 15.414L13.4 14.6C14.7898 15.0841 16.3028 15.0823 17.6915 14.5947C19.0801 14.1072 20.2622 13.1628 21.0444 11.9161C21.8265 10.6694 22.1624 9.19415 21.9971 7.73172C21.8318 6.26928 21.1751 4.90623 20.1344 3.86555C19.0937 2.82486 17.7307 2.16816 16.2683 2.00287C14.8058 1.83757 13.3306 2.17347 12.0839 2.95562C10.8372 3.73776 9.89279 4.91985 9.40525 6.3085C8.91771 7.69714 8.91585 9.21014 9.4 10.6L2.586 17.414Z"
               stroke="#A1A8AF"
@@ -220,6 +224,14 @@ const Select: ComponentRenderFunction = ({ field }, formField) => (
 //   />
 // );
 
+const DatePickerCmp: ComponentRenderFunction = ({ field }, formField) => (
+  <DatePicker
+    {...(formField.props || {})}
+    onChange={field.onChange}
+    value={field.value}
+  />
+);
+
 const DefaultInput: ComponentRenderFunction = ({ field }, formField, extra) => (
   <IconInput
     {...{
@@ -289,6 +301,9 @@ export function getComponent(type?: string): ComponentRenderFunction {
     }
     case "phone": {
       return PhoneCmp;
+    }
+    case "date": {
+      return DatePickerCmp;
     }
     // case "file": {
     //   return FileInput;

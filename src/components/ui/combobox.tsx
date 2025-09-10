@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -31,11 +29,13 @@ export type ComboboxProps<T, M extends boolean = false> = {
   searchPlaceholder?: string;
   className?: string;
   maxDisplayedItems?: number;
+  action?: (keyword: string) => Promise<T[]>;
 };
 
 export function Combobox<T, M extends boolean = false>({
   multiple = false as M,
   url,
+  action,
   options: initialOptions = [],
   resolveOptions = (data) => data as T[],
   getOptionLabel,
@@ -61,23 +61,30 @@ export function Combobox<T, M extends boolean = false>({
     setInternalValue(value ?? (multiple ? [] : ""));
   }, [value, multiple]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: dependencies are correct
   useEffect(() => {
     const fetchData = async () => {
-      if (!url) return;
+      if (!url && !action) return;
 
       try {
-        const response = await fetch(url);
-        const data = await response.json();
-        const resolved = resolveOptions(data);
-        setOptions(resolved);
+        if (action) {
+          const data = await action(searchQuery);
+          const resolved = resolveOptions(data);
+          setOptions(resolved);
+        } else {
+          // @ts-expect-error
+          const response = await fetch(url);
+          const data = await response.json();
+          const resolved = resolveOptions(data);
+          setOptions(resolved);
+        }
       } catch (error) {
         console.error("Error fetching options:", error);
       }
     };
 
     fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [url]);
+  }, [url, searchQuery]);
 
   const handleSelect = (currentValue: string) => {
     let newValue: any;
@@ -143,7 +150,6 @@ export function Combobox<T, M extends boolean = false>({
           aria-expanded={open}
           className={cn(
             "w-full justify-between",
-            "pl-[28px] pr-[24px] rounded-full min-h-[52px] border-gray text-foreground text-base hover:bg-transparent font-normal",
             value
               ? "text-foreground hover:text-foreground"
               : "text-gray hover:text-gray",

@@ -2,6 +2,7 @@ import createMiddleware from "next-intl/middleware";
 import { NextRequest, NextResponse } from "next/server";
 import { match } from "@formatjs/intl-localematcher";
 import { routing } from "./i18n/routing";
+import { cookies } from "next/headers";
 
 const locales = ["fr", "en"];
 const defaultLocale = "fr";
@@ -22,6 +23,12 @@ export default async function middleware(req: NextRequest) {
     (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
   );
 
+  // Add the full URL as a custom header
+  req.headers.set("x-current-url", req.url);
+
+  // Optionally, add just the pathname
+  req.headers.set("x-current-pathname", req.nextUrl.pathname);
+
   if (!pathLocale) {
     const matchedLocale = match(locales, locales, defaultLocale);
 
@@ -29,6 +36,9 @@ export default async function middleware(req: NextRequest) {
 
     return NextResponse.redirect(newUrl);
   }
+
+  const store = await cookies();
+  store.set("locale", pathLocale);
 
   return intlMiddleware(req);
 }

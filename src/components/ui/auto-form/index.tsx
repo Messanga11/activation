@@ -1,3 +1,5 @@
+/** biome-ignore-all lint/correctness/useExhaustiveDependencies: needed here */
+/** biome-ignore-all lint/suspicious/noExplicitAny: needed here */
 "use client";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -28,10 +30,10 @@ import { formatValuesWithDots } from "./utils/helpers";
 import { type IAutoFormValidator, useValidators } from "./utils/validators";
 import { Button } from "../button";
 import { Loader2 } from "lucide-react";
-import { ComboboxProps } from "../combobox";
-import { TAppSelectProps } from "../app-select";
-import { PhoneInputProps } from "../phone-input";
-import { IconInputProps } from "../icon-input";
+import type { ComboboxProps } from "../combobox";
+import type { TAppSelectProps } from "../app-select";
+import type { PhoneInputProps } from "../phone-input";
+import type { IconInputProps } from "../icon-input";
 import { cn } from "@/lib/utils";
 
 type ButtonProps = React.ComponentProps<"button"> & {
@@ -117,10 +119,7 @@ type IUnionToIntersection<U> = (
   ? I
   : never;
 
-export type IAutoFormReturn<
-  T extends object,
-  TInitialItem = T
-> = IUnionToIntersection<
+export type IAutoFormReturn<T extends object> = IUnionToIntersection<
   {
     [K in keyof T]: T[K] extends GroupItems
       ? IAutoFormReturn<T[K]["items"]>
@@ -128,7 +127,7 @@ export type IAutoFormReturn<
   }[keyof T]
 >;
 
-export type AutoFormField<T = unknown, TInitialItem = T> =
+export type AutoFormField<T = unknown, TInitialItem = T> = (
   | TComponent
   | ({
       initialValue: (initialItem?: any) => InitialValueType;
@@ -150,7 +149,10 @@ export type AutoFormField<T = unknown, TInitialItem = T> =
       | ComboboxField
       | GroupItems
       | TextareaField
-    ));
+    ))
+) & {
+  hide?: (item: TInitialItem) => boolean;
+};
 // | FileField
 // | MultiCheckboxField
 // | OpeningHoursPropsField
@@ -195,7 +197,7 @@ export interface AutoFormProps<
   beforeBtn?: React.ReactNode;
 }
 
-export function AutoForm<T extends object, TInitialItem extends object>({
+export function AutoForm<T extends object>({
   fields: _fields,
   onSubmit,
   initialItem,
@@ -223,11 +225,13 @@ export function AutoForm<T extends object, TInitialItem extends object>({
   const v = useValidators();
 
   const fieldsAsArray = useMemo(() => {
-    return Object.keys(fields).map((key) => ({
-      id: key,
-      ...(fields as Record<string, AutoFormField>)[key],
-    }));
-  }, [fields]);
+    return Object.keys(fields)
+      .map((key) => ({
+        id: key,
+        ...(fields as Record<string, AutoFormField>)[key],
+      }))
+      .filter((field) => (field.hide ? !field.hide(initialItem) : true));
+  }, [fields, initialItem]);
 
   const formSchema = useMemo(() => {
     if (schema) {
@@ -253,7 +257,6 @@ export function AutoForm<T extends object, TInitialItem extends object>({
     );
 
     if (superRefine) {
-      // @ts-ignore
       zObject = zObject.superRefine(superRefine) as unknown as z.ZodObject<
         z.ZodRawShape,
         "strip",
@@ -310,13 +313,11 @@ export function AutoForm<T extends object, TInitialItem extends object>({
     shouldUnregister: false,
     delayError: undefined,
     resolver: zodResolver(formSchema),
-    // @ts-ignore
     defaultValues,
   });
 
   const handleFormChange = useCallback(() => {
     if (formRef) {
-      // @ts-ignore
       formRef.current = form;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -368,7 +369,7 @@ export function AutoForm<T extends object, TInitialItem extends object>({
     });
 
     if (onSubmit) {
-      onSubmit(payload as IAutoFormReturn<T, TInitialItem>, form as any);
+      onSubmit(payload as IAutoFormReturn<T>, form as any);
     }
   };
 
@@ -384,7 +385,11 @@ export function AutoForm<T extends object, TInitialItem extends object>({
         AutoFormField<unknown>,
         TComponent
       >;
-      if (!formField || (formField.type === "group" ? false : !completeField))
+      if (
+        !formField ||
+        (formField.hide ? formField.hide(initialItem) : false) ||
+        (formField.type === "group" ? false : !completeField)
+      )
         return null;
 
       return formField.type === "group" ? (
@@ -426,7 +431,6 @@ export function AutoForm<T extends object, TInitialItem extends object>({
                 {renderField(
                   {
                     ...props,
-                    // @ts-ignore
                     field: {
                       ...props.field,
                       id: props.field.name,
@@ -451,8 +455,6 @@ export function AutoForm<T extends object, TInitialItem extends object>({
       );
     });
   };
-
-  console.log({ formSchema });
 
   return (
     <Form {...form}>

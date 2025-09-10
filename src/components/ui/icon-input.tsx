@@ -22,6 +22,7 @@ export function IconInput({
   ...props
 }: IconInputProps) {
   const [rawValue, setRawValue] = useState("");
+  const [isFocused, setIsFocused] = useState(false);
 
   const applyMask = (value: string, mask: string) => {
     let result = "";
@@ -66,7 +67,8 @@ export function IconInput({
   return (
     <div
       className={cn(
-        "pl-[28px] pr-[27px] gap-[15px] group flex border border-gray rounded-full relative items-center",
+        "px-4 gap-[15px] group flex border border-gray rounded-md relative items-center",
+        isFocused && "border-ring ring-ring/50 ring-[3px]",
         className
       )}
     >
@@ -74,11 +76,19 @@ export function IconInput({
       <Input
         {...props}
         className={cn(
-          "!rounded-none shadow-none p-0 border-none outline-none focus:ring-0",
+          "!rounded-none shadow-none p-0 border-none outline-none ring-transparent focus-visible:ring-0 focus-visible:ring-transparent",
           inputClassName
         )}
         value={mask ? applyMask(rawValue, mask) : props.value}
         onChange={handleChange}
+        onFocus={(e) => {
+          setIsFocused(true);
+          props.onFocus?.(e);
+        }}
+        onBlur={(e) => {
+          setIsFocused(false);
+          props.onBlur?.(e);
+        }}
       />
       {endIcon}
     </div>

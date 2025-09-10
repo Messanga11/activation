@@ -1,0 +1,35 @@
+{
+  "login": {
+    "title": "Connexion",
+    "description": "Entrez votre email ci-dessous pour vous connecter",
+    "email": "Email",
+    "password": "Mot de passe",
+    "forgotPassword": "Mot de passe oublié ?",
+    "login": "Connexion",
+    "login_successful": "Connexion réussie"
+  },
+  "Validators": {
+    "required": "Champ obligatoire",
+    "required_string": "Champ obligatoire",
+    "invalidCardNumber": "Numéro de carte invalide",
+    "mustBeNumber": "Doit être un nombre",
+    "invalidPostalCode": "Code postal invalide",
+    "invalidHostname": "Nom d'hôte invalide",
+    "invalidPassword": "Mot de passe invalide",
+    "passwordsDontMatch": "Les mots de passe ne correspondent pas",
+    "invalidTvaNumber": "Numéro TVA invalide",
+    "invalidSirenSiret": "Numéro Siren/Siret invalide",
+    "email": "Email invalide"
+  },
+  "form": {
+    "placeholder_enter_model": "Entrez quelque chose"
+  },
+  "common": {
+    "empty_state_title": "Aucune donnée",
+    "empty_state_description": "Aucune donnée disponible",
+    "dsm": {
+      "CUSTOMER": "Externe",
+      "OFFICE": "Interne"
+    }
+  }
+}

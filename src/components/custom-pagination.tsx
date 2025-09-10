@@ -14,7 +14,7 @@ import {
 interface CustomPaginationProps {
   currentPage: number;
   totalPages: number;
-  setCurrentPage: Dispatch<SetStateAction<number>>;
+  setCurrentPage: (page: number) => void;
 }
 
 export function CustomPagination({

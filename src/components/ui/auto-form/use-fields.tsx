@@ -1,6 +1,6 @@
-import { type ZodEffects, type ZodString } from "zod";
+import type { ZodEffects, ZodString } from "zod";
 
-import { type AutoFormField } from "./index";
+import type { AutoFormField } from "./index";
 import { getInitialItemWithDot } from "./utils/helpers";
 import { useValidators } from "./utils/validators";
 import { useTranslations } from "next-intl";
@@ -17,8 +17,14 @@ export function useFields<T, TInitialItem = T>(
 ): IReturnedFields<T, TInitialItem> {
   // Fallback function pour les labels
   const t = useTranslations();
+  const v = useValidators();
 
-  return buildFields<T, TInitialItem>(fields, t);
+  return buildFields<T, TInitialItem>(
+    fields,
+    t,
+    {} as IReturnedFields<T, TInitialItem>,
+    v
+  );
 }
 
 function buildFields<T, TInitialItem = T>(
@@ -27,7 +33,8 @@ function buildFields<T, TInitialItem = T>(
   formattedFields: IReturnedFields<T, TInitialItem> = {} as IReturnedFields<
     T,
     TInitialItem
-  >
+  >,
+  v: ReturnType<typeof useValidators>
 ) {
   for (const fieldName of Object.keys(fields)) {
     const currentField = fields[fieldName as keyof typeof fields];
@@ -36,10 +43,11 @@ function buildFields<T, TInitialItem = T>(
       buildFields(
         (currentField as { items: typeof fields }).items,
         t,
-        formattedFields
+        formattedFields,
+        v
       );
     } else {
-      buildField(currentField, fieldName, t, formattedFields);
+      buildField(currentField, fieldName, t, formattedFields, v);
     }
   }
 
@@ -50,9 +58,9 @@ function buildField(
   currentField: Partial<AutoFormField<never>> | undefined,
   fieldName: string,
   t: (key: string) => string,
-  formattedFields = {}
+  formattedFields = {},
+  v: ReturnType<typeof useValidators>
 ) {
-  const v = useValidators();
   const typeValidationMapper = {
     text: v.string,
     number: v.positiveNumber,
@@ -85,6 +93,7 @@ function buildField(
     validator,
     ...currentField,
   };
+
   formattedFields[fieldName as keyof typeof formattedFields] =
     finalObj as (typeof formattedFields)[keyof unknown];
 }

@@ -23,5 +23,13 @@
   },
   "form": {
     "placeholder_enter_model": "Enter something"
+  },
+  "common": {
+    "empty_state_title": "No data",
+    "empty_state_description": "No data available",
+    "dsm": {
+      "CUSTOMER": "External",
+    "OFFICE": "Internal"
+    }
   }
 }

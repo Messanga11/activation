@@ -3,9 +3,14 @@ generator client {
   output   = "../src/generated/prisma"
 }
 
+// datasource db {
+//   provider = "sqlite"
+//   url      = "file:./dev.db"
+// }
+
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 enum UserRole {
@@ -101,6 +106,7 @@ model Organization {
   invitations                 Invitation[]
   simSales                    SimSale[]
   dsm                         Dsm[]
+  email                       String
   pos                         Pos[]
   simCount                    Int?
   simOrganizationTransactions SimOrganizationTransaction[]
@@ -115,26 +121,23 @@ model Member {
   userId         String
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   role           UserRole     @default(BA)
-  cni            String       @unique
-  blueNumber     String       @unique
-  otherNumber    String       @unique
+  cni            String
+  blueNumber     String
+  otherNumber    String
   createdAt      DateTime     @default(now())
 
   // Relations with SimSale
   baSales         SimSale[] @relation("BASales")
   teamLeaderSales SimSale[] @relation("TeamLeaderSales")
 
+  memberPos Pos[] @relation("MemberPos")
+
   // Relations with Pos
-  baPos           Pos[]            @relation("BAPos")
-  teamLeaderPos   Pos[]            @relation("TeamLeaderPos")
   simTransactions SimTransaction[]
 
   // Relations with SimOrganizationTransaction
   memberSimOrganizationTransactions     SimOrganizationTransaction[] @relation("MemberSimOrganizationTransaction")
   teamLeaderSimOrganizationTransactions SimOrganizationTransaction[] @relation("TeamLeaderSimOrganizationTransaction")
-
-  DsmTopUp DsmTopUp[]
-  PosTopUp PosTopUp[]
 
   simCount Int?
 
@@ -142,6 +145,9 @@ model Member {
   baSimTransactionBaTeamLeader         SimTransactionBaTeamLeader[] @relation("BaSimTransactionBaTeamLeader")
   teamLeaderSimTransactionBaTeamLeader SimTransactionBaTeamLeader[] @relation("TeamLeaderSimTransactionBaTeamLeader")
   memberSimTransactionBaTeamLeader     SimTransactionBaTeamLeader[] @relation("MemberSimTransactionBaTeamLeader")
+
+  dsmTopUp DsmTopUp[]
+  posTopUp PosTopUp[]
 
   @@unique([organizationId, userId])
   @@map("members")
@@ -190,6 +196,7 @@ model SimSale {
 model Dsm {
   id             String       @id @default(cuid())
   number         String
+  name           String
   pos            Pos[]
   topUps         DsmTopUp[]
   posTopUps      PosTopUp[]
@@ -224,7 +231,8 @@ model PosTopUp {
   dsmId          String
   // who made the transaction
   memberId       String
-  blueNumber     String
+  // blueNumber     String
+  rate           Float    @default(0)
   previousAmount Float
   member         Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
   dsm            Dsm      @relation(fields: [dsmId], references: [id], onDelete: Cascade)
@@ -249,7 +257,6 @@ model Pos {
   address        String
   otherNumber    String
   holderName     String
-  kyc            String
   dsmId          String
   type           PosType
   dsm            Dsm          @relation(fields: [dsmId], references: [id], onDelete: Cascade)
@@ -257,10 +264,10 @@ model Pos {
   amount         Float
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  baId           String
-  ba             Member       @relation("BAPos", fields: [baId], references: [id], onDelete: Cascade)
-  teamLeaderId   String
-  teamLeader     Member       @relation("TeamLeaderPos", fields: [teamLeaderId], references: [id], onDelete: Cascade)
+  memberId       String?
+  member         Member?      @relation("MemberPos", fields: [memberId], references: [id], onDelete: Cascade)
+  lng            Float?
+  lat            Float?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
@@ -309,4 +316,46 @@ model SimTransactionBaTeamLeader {
   updatedAt    DateTime @updatedAt
 
   @@map("sim_transactions_ba_team_leader")
+}
+
+model Event {
+  id                  String          @id @default(cuid())
+  name                String
+  description         String?
+  date                DateTime
+  location            String?
+  associatedMaterials EventMaterial[]
+  observations        String?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  @@map("events")
+}
+
+model Material {
+  id               String          @id @default(cuid())
+  name             String
+  quantity         Int
+  associatedEvents EventMaterial[]
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@map("materials")
+}
+
+model EventMaterial {
+  id                 String    @id @default(cuid())
+  eventId            String
+  event              Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  materialId         String
+  quantity           Int
+  returnedQuantity   Int?
+  returnObservations String?
+  observations       String?
+  material           Material  @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  returnedAt         DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@map("event_materials")
 }

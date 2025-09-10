@@ -11,10 +11,10 @@ import {
 } from "@/components/ui/table";
 import { useAutoAnimate } from "@/components/auto-animate";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useEffect, useState } from "react";
-import { UseQueryResult } from "@tanstack/react-query";
+import type { UseQueryResult } from "@tanstack/react-query";
 import { ListItemsEmpty } from "./list-empty";
 import { CustomPagination } from "./custom-pagination";
+import { ScrollArea, ScrollBar } from "./ui/scroll-area";
 
 interface ShinyTableProps<T extends object> {
   service?: () => UseQueryResult<any> | any;
@@ -24,6 +24,7 @@ interface ShinyTableProps<T extends object> {
   cols: {
     header: string;
     accessorKey?: keyof T;
+    hidden?: (row: T) => boolean;
     cell?: (
       row: T,
       options: {
@@ -38,7 +39,7 @@ interface ShinyTableProps<T extends object> {
   isLoading?: boolean;
   currentPage?: number;
   totalPages?: number;
-  setCurrentPage?: React.Dispatch<React.SetStateAction<number>>;
+  setCurrentPage?: (page: number) => void;
   resolveData?: (data: any) => T[];
 }
 
@@ -63,7 +64,6 @@ export function ShinyTable<T extends object>({
   resolveData,
 }: ShinyTableProps<T>) {
   const [ref] = useAutoAnimate();
-  const [visibleSkeletonCount, setVisibleSkeletonCount] = useState(2);
 
   const queryData = service?.();
   const qData = queryData?.data as {
@@ -81,44 +81,33 @@ export function ShinyTable<T extends object>({
   const currentPage = qData?.page;
   const totalPages = qData?.pages;
 
-  useEffect(() => {
-    let interval: any;
-    if (isLoading) {
-      // show first row immediately
-      setVisibleSkeletonCount((prev) => (prev === 2 ? 3 : prev));
-      interval = setInterval(() => {
-        setVisibleSkeletonCount((prev) => (prev < 6 ? prev + 1 : 2));
-      }, 300);
-    } else {
-      setVisibleSkeletonCount(2);
-    }
-    return () => clearInterval(interval);
-  }, [isLoading]);
-
   return (
-    <div className="border border-gray-300 rounded-md overflow-hidden">
-      <Table className={cn(className)}>
+    <ScrollArea className="border border-gray-300 w-full rounded-[15px]">
+      <Table className={className}>
         <TableHeader>
           <TableRow>
-            {cols.map((col, index) => (
+            {cols.map((col) => (
               <TableHead
-                key={index}
+                key={col.header}
                 className={cn(
                   col.headerClassName,
                   headerClassName,
-                  "text-sm text-gray3 font-normal p-3 bg-muted"
+                  "text-sm text-gray3 font-normal py-3 px-5 bg-muted"
                 )}
               >
-                {col.header}
+                <pre>{col.header}</pre>
               </TableHead>
             ))}
           </TableRow>
         </TableHeader>
         <TableBody ref={ref}>
-          {isLoading && visibleSkeletonCount > 0 ? (
-            Array.from({ length: visibleSkeletonCount }).map((_, index) => (
+          {isLoading ? (
+            Array.from({ length: 6 }).map((_, index) => (
               <TableRow
-                key={`skeleton-${index}`}
+                key={`skeleton-loading-row-${_}-${
+                  // biome-ignore lint/suspicious/noArrayIndexKey: cannot find another key
+                  index
+                }`}
                 className={cn(
                   "rounded-[10px] overflow-hidden hover:bg-transparent",
                   striped && index % 2 === 0 && "bg-light3"
@@ -126,8 +115,9 @@ export function ShinyTable<T extends object>({
               >
                 {cols.map((_, indexCol) => (
                   <TableCell
-                    key={`skeleton-cell-${index}-${indexCol}`}
+                    key={`skeleton-loading-cell-${index}-${_.header}-${indexCol}`}
                     className={cn(
+                      "py-3 px-5",
                       cellClassName,
                       striped && index % 2 === 0 && "bg-light3",
                       indexCol === 0 && "rounded-l-[10px]",
@@ -141,14 +131,14 @@ export function ShinyTable<T extends object>({
             ))
           ) : !Array.isArray(data) || data.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={cols.length}>
+              <TableCell colSpan={cols.length} className="py-3 px-5">
                 <ListItemsEmpty />
               </TableCell>
             </TableRow>
           ) : (
             data.map((row, index) => (
               <TableRow
-                key={index}
+                key={row.id}
                 className={cn(
                   "rounded-[10px] overflow-hidden hover:bg-transparent",
                   striped && index % 2 === 0 && "bg-light3"
@@ -162,8 +152,9 @@ export function ShinyTable<T extends object>({
                       : "-");
                   return (
                     <TableCell
-                      key={`${indexCol}-${index}`}
+                      key={`${indexCol}-${col.header}`}
                       className={cn(
+                        "py-3 px-5",
                         col.cellClassName,
                         cellClassName,
                         striped && index % 2 === 0 && "bg-light3",
@@ -191,6 +182,7 @@ export function ShinyTable<T extends object>({
             />
           </div>
         )}
-    </div>
+      <ScrollBar orientation="horizontal" />
+    </ScrollArea>
   );
 }

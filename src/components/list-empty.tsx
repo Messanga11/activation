@@ -5,10 +5,10 @@ import { useTranslations } from "next-intl";
 import React from "react";
 
 export function ListItemsEmpty() {
-  const t = useTranslations("SettingsPage");
+  const t = useTranslations("common");
 
   return (
-    <div className="w-full flex justify-center mt-20">
+    <div className="w-full flex justify-center py-20">
       <div className="flex flex-col justify-center items-center gap-2.5 w-full md:w-2/4">
         <div className="size-20 bg-success/10 flex items-center justify-center text-success rounded-full">
           <PackageOpen size={35} />

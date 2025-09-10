@@ -2,7 +2,8 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { ROUTES } from "@/config/routes";
-import { authClient } from "@/lib/auth-client";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 export default async function Page({
@@ -10,9 +11,10 @@ export default async function Page({
 }: {
   children: React.ReactNode;
 }) {
-  const user = await authClient.getSession();
-
-  if (!user) {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  if (!session) {
     return redirect(ROUTES.login);
   }
 
@@ -25,7 +27,22 @@ export default async function Page({
         } as React.CSSProperties
       }
     >
-      <AppSidebar variant="inset" />
+      <AppSidebar
+        variant="inset"
+        session={{
+          data: {
+            user: {
+              name: session.user.name,
+              email: session.user.email,
+              avatar: session.user.image ?? "",
+              role: session.user.role,
+              organization: {
+                name: session.user.organization?.name ?? "",
+              },
+            },
+          },
+        }}
+      />
       <SidebarInset>
         <SiteHeader />
         {children}
