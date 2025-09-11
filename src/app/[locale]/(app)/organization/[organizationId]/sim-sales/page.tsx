@@ -24,7 +24,9 @@ export default function SimSalesPage() {
       dataService={listSimSalesAction}
       createAction={createSimSaleAction}
       // biome-ignore lint/suspicious/noExplicitAny: needed
-      rowClassName={(row) => ((row as any).isDuplicated ? "bg-red-50" : "")}
+      rowClassName={(row) =>
+        (row as any).isDuplicated ? "bg-destructive/20" : ""
+      }
       columns={[
         {
           header: "Client",

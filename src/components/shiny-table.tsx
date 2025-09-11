@@ -1,3 +1,4 @@
+/** biome-ignore-all lint/suspicious/noExplicitAny: needed */
 "use client";
 
 import { cn } from "@/lib/utils";
