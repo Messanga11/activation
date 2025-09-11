@@ -46,20 +46,29 @@ export async function SectionCards() {
 
   // Fonction générique pour compter les entités
   const getCount = async (
-    model: "simSale" | "member" | "pos" | "dsm",
+    model: "simSale" | "posTopUp" | "pos" | "dsm",
     start: Date,
     end: Date,
     customPop?: string
   ) => {
     if (customPop) {
       const result = await db[model as "simSale"].findMany({
-        where: {
-          organizationId,
-        },
+        where:
+          model === "posTopUp"
+            ? {
+                // @ts-expect-error
+                pos: {
+                  organizationId,
+                },
+              }
+            : {
+                organizationId,
+              },
         select: {
           [customPop]: true,
         },
       });
+      // @ts-expect-error
       return result.reduce((acc, item) => acc + item[customPop], 0);
     }
     const whereCondition: any = {
@@ -84,8 +93,8 @@ export async function SectionCards() {
     const [
       simSalesCurrent,
       simSalesPrevious,
-      membersCurrent,
-      membersPrevious,
+      posTopUpsCurrent,
+      posTopUpsPrevious,
       posCurrent,
       posPrevious,
       dsmCurrent,
@@ -93,8 +102,8 @@ export async function SectionCards() {
     ] = await Promise.all([
       getCount("simSale", currentMonthStart, currentDate),
       getCount("simSale", previousMonthStart, previousMonthEnd),
-      getCount("member", currentMonthStart, currentDate),
-      getCount("member", previousMonthStart, previousMonthEnd),
+      getCount("posTopUp", currentMonthStart, currentDate, "amount"),
+      getCount("posTopUp", previousMonthStart, previousMonthEnd, "amount"),
       getCount("pos", currentMonthStart, currentDate),
       getCount("pos", previousMonthStart, previousMonthEnd),
       getCount("dsm", currentMonthStart, currentDate, "amount"),
@@ -103,7 +112,7 @@ export async function SectionCards() {
 
     // Calcul des tendances
     const simSalesTrend = calculateTrend(simSalesCurrent, simSalesPrevious);
-    const membersTrend = calculateTrend(membersCurrent, membersPrevious);
+    const posTopUpsTrend = calculateTrend(posTopUpsCurrent, posTopUpsPrevious);
     const posTrend = calculateTrend(posCurrent, posPrevious);
     const dsmTrend = calculateTrend(dsmCurrent, dsmPrevious);
 
@@ -160,28 +169,32 @@ export async function SectionCards() {
           </CardFooter>
         </Card>
 
-        {/* Carte 2: Nouveaux membres */}
+        {/* Carte 2: Vente de crédit */}
         <Card className="@container/card">
           <CardHeader>
-            <CardDescription>Nouveaux membres</CardDescription>
+            <CardDescription>Vente de crédit</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              {membersCurrent}
+              {posTopUpsCurrent}
             </CardTitle>
             <CardAction>
               <Badge variant="outline">
-                {membersTrend >= 0 ? <IconTrendingUp /> : <IconTrendingDown />}
-                {membersTrend >= 0
-                  ? `+${membersTrend.toFixed(1)}%`
-                  : `${membersTrend.toFixed(1)}%`}
+                {posTopUpsTrend >= 0 ? (
+                  <IconTrendingUp />
+                ) : (
+                  <IconTrendingDown />
+                )}
+                {posTopUpsTrend >= 0
+                  ? `+${posTopUpsTrend.toFixed(1)}%`
+                  : `${posTopUpsTrend.toFixed(1)}%`}
               </Badge>
             </CardAction>
           </CardHeader>
           <CardFooter className="flex-col items-start gap-1.5 text-sm">
             <div className="line-clamp-1 flex gap-2 font-medium">
-              {membersTrend >= 0
+              {posTopUpsTrend >= 0
                 ? "Augmentation ce mois"
                 : "Diminution ce mois"}
-              {membersTrend >= 0 ? (
+              {posTopUpsTrend >= 0 ? (
                 <IconTrendingUp className="size-4" />
               ) : (
                 <IconTrendingDown className="size-4" />
