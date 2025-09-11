@@ -2,6 +2,7 @@
 
 import { getSession } from "@/lib/auth/role";
 import { db } from "@/lib/db";
+import moment from "moment";
 
 export const getStatsAction = async (input: { from?: Date; to?: Date }) => {
   const session = await getSession();
@@ -27,6 +28,13 @@ export const getStatsAction = async (input: { from?: Date; to?: Date }) => {
     end: Date,
     customPop?: string
   ) => {
+    if (!moment(start).isValid() || !moment(end).isValid()) {
+      throw new Error("Date range is required");
+    }
+
+    start.setHours(0, 0, 0, 0);
+    end.setHours(23, 59, 59, 999);
+
     const whereCondition: any = {
       createdAt: {
         gte: start,
