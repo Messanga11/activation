@@ -6,49 +6,54 @@ export const createSimTransaction = async (data: {
   quantity: number;
   memberId: string;
 }) => {
-  return await db.$transaction(async (tx) => {
-    const member = await tx.member.findUnique({
-      where: { id: data.memberId },
-      include: { organization: true },
-    });
-    if (!member) throw new NotFoundError("Member");
-
-    // Check if organization has enough SIMs
-    // if (
-    //   member.organization.simCount !== null &&
-    //   member.organization.simCount < data.quantity
-    // ) {
-    //   throw new InsufficientStockError("SIM");
-    // }
-
-    // Update organization SIM count
-    if (member.organization.simCount !== null) {
-      await tx.organization.update({
-        where: { id: member.organization.id },
-        data: { simCount: member.organization.simCount + data.quantity },
+  return await db.$transaction(
+    async (tx) => {
+      const member = await tx.member.findUnique({
+        where: { id: data.memberId },
+        include: { organization: true },
       });
-    }
+      if (!member) throw new NotFoundError("Member");
 
-    // Update member SIM count
-    // if (member.simCount !== null) {
-    //   await tx.member.update({
-    //     where: { id: member.id },
-    //     data: { simCount: member.simCount + data.quantity },
-    //   });
-    // }
+      // Check if organization has enough SIMs
+      // if (
+      //   member.organization.simCount !== null &&
+      //   member.organization.simCount < data.quantity
+      // ) {
+      //   throw new InsufficientStockError("SIM");
+      // }
 
-    return await tx.simTransaction.create({
-      data,
-      include: {
-        member: {
-          include: {
-            user: true,
-            organization: true,
+      // Update organization SIM count
+      if (member.organization.simCount !== null) {
+        await tx.organization.update({
+          where: { id: member.organization.id },
+          data: { simCount: member.organization.simCount + data.quantity },
+        });
+      }
+
+      // Update member SIM count
+      // if (member.simCount !== null) {
+      //   await tx.member.update({
+      //     where: { id: member.id },
+      //     data: { simCount: member.simCount + data.quantity },
+      //   });
+      // }
+
+      return await tx.simTransaction.create({
+        data,
+        include: {
+          member: {
+            include: {
+              user: true,
+              organization: true,
+            },
           },
         },
-      },
-    });
-  });
+      });
+    },
+    {
+      timeout: 10000,
+    }
+  );
 };
 
 export const getSimTransaction = async (id: string) => {

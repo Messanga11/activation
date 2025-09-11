@@ -43,7 +43,7 @@ export default async function Page({
           },
         }}
       />
-      <SidebarInset>
+      <SidebarInset className="lg:!w-[calc(100vw-var(--sidebar-width))]">
         <SiteHeader />
         {children}
       </SidebarInset>

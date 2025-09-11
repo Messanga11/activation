@@ -10,55 +10,60 @@ export const createPosTopUp = async (data: {
   observations?: string;
   previousAmount: number;
 }) => {
-  return await db.$transaction(async (tx) => {
-    // Check if DSM, POS and member exist
-    const [dsm, pos, member] = await Promise.all([
-      tx.dsm.findUnique({ where: { id: data.dsmId } }),
-      tx.pos.findUnique({ where: { id: data.posId } }),
-      tx.member.findUnique({ where: { id: data.memberId } }),
-    ]);
+  return await db.$transaction(
+    async (tx) => {
+      // Check if DSM, POS and member exist
+      const [dsm, pos, member] = await Promise.all([
+        tx.dsm.findUnique({ where: { id: data.dsmId } }),
+        tx.pos.findUnique({ where: { id: data.posId } }),
+        tx.member.findUnique({ where: { id: data.memberId } }),
+      ]);
 
-    if (!dsm) throw new NotFoundError("Master");
-    if (!pos) throw new NotFoundError("DSM");
-    if (!member) throw new NotFoundError("Member");
+      if (!dsm) throw new NotFoundError("Master");
+      if (!pos) throw new NotFoundError("DSM");
+      if (!member) throw new NotFoundError("Member");
 
-    // Check if DSM has enough amount
-    const rate = TRANSACTIONS.rates[pos.type];
-    const amount = data.amount * (1 + rate);
-    if (dsm.amount < amount) {
-      throw new InsufficientStockError(`${dsm.name} (${dsm.amount})`);
-    }
+      // Check if DSM has enough amount
+      const rate = TRANSACTIONS.rates[pos.type];
+      const amount = data.amount * (1 + rate);
+      if (dsm.amount < amount) {
+        throw new InsufficientStockError(`${dsm.name} (${dsm.amount})`);
+      }
 
-    // Update DSM amount
-    await tx.dsm.update({
-      where: { id: dsm.id },
-      data: { amount: dsm.amount - amount },
-    });
+      // Update DSM amount
+      await tx.dsm.update({
+        where: { id: dsm.id },
+        data: { amount: dsm.amount - amount },
+      });
 
-    // Update POS amount
-    await tx.pos.update({
-      where: { id: pos.id },
-      data: { amount: pos.amount + amount },
-    });
+      // Update POS amount
+      await tx.pos.update({
+        where: { id: pos.id },
+        data: { amount: pos.amount + amount },
+      });
 
-    // Create the top-up
-    return await tx.posTopUp.create({
-      data: {
-        ...data,
-        previousAmount: pos.amount,
-        rate,
-      },
-      include: {
-        dsm: true,
-        pos: true,
-        member: {
-          include: {
-            user: true,
+      // Create the top-up
+      return await tx.posTopUp.create({
+        data: {
+          ...data,
+          previousAmount: pos.amount,
+          rate,
+        },
+        include: {
+          dsm: true,
+          pos: true,
+          member: {
+            include: {
+              user: true,
+            },
           },
         },
-      },
-    });
-  });
+      });
+    },
+    {
+      timeout: 10000,
+    }
+  );
 };
 
 export const getPosTopUp = async (id: string) => {

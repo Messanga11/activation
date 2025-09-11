@@ -16,9 +16,11 @@ import {
 export const DatePicker = ({
   value,
   onChange,
+  disabled,
 }: {
   value?: string | null;
-  onChange: (value: string | null) => void;
+  onChange?: (value: string | null) => void;
+  disabled?: boolean;
 }) => {
   return (
     <Popover>
@@ -27,6 +29,7 @@ export const DatePicker = ({
           variant="outline"
           data-empty={!value}
           className="data-[empty=true]:text-muted-foreground justify-start text-left font-normal"
+          disabled={disabled}
         >
           <CalendarIcon />
           {value ? format(value, "PPP") : <span>Pick a date</span>}
@@ -36,7 +39,8 @@ export const DatePicker = ({
         <Calendar
           mode="single"
           selected={value ? moment(value).toDate() : undefined}
-          onSelect={(date) => onChange(date ? moment(date).format() : null)}
+          onSelect={(date) => onChange?.(date ? moment(date).format() : null)}
+          disabled={disabled}
         />
       </PopoverContent>
     </Popover>

@@ -10,58 +10,63 @@ export const createSimOrganizationTransaction = async (data: {
   memberId: string;
   teamLeaderId: string;
 }) => {
-  return await db.$transaction(async (tx) => {
-    const [organization, member, teamLeader] = await Promise.all([
-      tx.organization.findUnique({ where: { id: data.organizationId } }),
-      tx.member.findUnique({ where: { id: data.memberId } }),
-      tx.member.findUnique({ where: { id: data.teamLeaderId } }),
-    ]);
+  return await db.$transaction(
+    async (tx) => {
+      const [organization, member, teamLeader] = await Promise.all([
+        tx.organization.findUnique({ where: { id: data.organizationId } }),
+        tx.member.findUnique({ where: { id: data.memberId } }),
+        tx.member.findUnique({ where: { id: data.teamLeaderId } }),
+      ]);
 
-    if (!organization) throw new NotFoundError("Organization");
-    if (!member) throw new NotFoundError("Member");
-    if (!teamLeader) throw new NotFoundError("Team Leader");
+      if (!organization) throw new NotFoundError("Organization");
+      if (!member) throw new NotFoundError("Member");
+      if (!teamLeader) throw new NotFoundError("Team Leader");
 
-    // Check if organization has enough SIMs
-    if (
-      organization.simCount !== null &&
-      organization.simCount < data.quantity
-    ) {
-      throw new InsufficientStockError("SIM");
+      // Check if organization has enough SIMs
+      if (
+        organization.simCount !== null &&
+        organization.simCount < data.quantity
+      ) {
+        throw new InsufficientStockError("SIM");
+      }
+
+      // Update organization SIM count
+      await tx.organization.update({
+        where: { id: organization.id },
+        data: { simCount: (organization.simCount || 0) - data.quantity },
+      });
+
+      // await tx.member.update({
+      //   where: { id: member.id },
+      //   data: { simCount: (member.simCount || 0) + data.quantity },
+      // });
+
+      await tx.member.update({
+        where: { id: teamLeader.id },
+        data: { simCount: (teamLeader.simCount || 0) + data.quantity },
+      });
+
+      return await tx.simOrganizationTransaction.create({
+        data,
+        include: {
+          organization: true,
+          member: {
+            include: {
+              user: true,
+            },
+          },
+          teamLeader: {
+            include: {
+              user: true,
+            },
+          },
+        },
+      });
+    },
+    {
+      timeout: 10000,
     }
-
-    // Update organization SIM count
-    await tx.organization.update({
-      where: { id: organization.id },
-      data: { simCount: (organization.simCount || 0) - data.quantity },
-    });
-
-    // await tx.member.update({
-    //   where: { id: member.id },
-    //   data: { simCount: (member.simCount || 0) + data.quantity },
-    // });
-
-    await tx.member.update({
-      where: { id: teamLeader.id },
-      data: { simCount: (teamLeader.simCount || 0) + data.quantity },
-    });
-
-    return await tx.simOrganizationTransaction.create({
-      data,
-      include: {
-        organization: true,
-        member: {
-          include: {
-            user: true,
-          },
-        },
-        teamLeader: {
-          include: {
-            user: true,
-          },
-        },
-      },
-    });
-  });
+  );
 };
 
 export const getSimOrganizationTransactions = async (

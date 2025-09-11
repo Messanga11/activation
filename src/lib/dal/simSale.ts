@@ -32,41 +32,46 @@ export const createSimSale = async (data: {
 
   if (!teamLeader) throw new NotFoundError("Team Leader");
 
-  return await db.$transaction(async (tx) => {
-    const baMember = await tx.member.findUnique({ where: { id: ba.id } });
+  return await db.$transaction(
+    async (tx) => {
+      const baMember = await tx.member.findUnique({ where: { id: ba.id } });
 
-    const baSimCount = baMember?.simCount ?? 0;
+      const baSimCount = baMember?.simCount ?? 0;
 
-    if (baSimCount < 1) {
-      throw new InsufficientStockError("BA");
+      if (baSimCount < 1) {
+        throw new InsufficientStockError("BA");
+      }
+
+      await tx.member.update({
+        where: { id: ba.id },
+        data: { simCount: baSimCount - 1 },
+      });
+
+      await tx.simSale.create({
+        data: {
+          ...data,
+          baId: ba.id,
+          teamLeaderId: teamLeader.id,
+        },
+        include: {
+          organization: true,
+          ba: {
+            include: {
+              user: true,
+            },
+          },
+          teamLeader: {
+            include: {
+              user: true,
+            },
+          },
+        },
+      });
+    },
+    {
+      timeout: 10000,
     }
-
-    await tx.member.update({
-      where: { id: ba.id },
-      data: { simCount: baSimCount - 1 },
-    });
-
-    await tx.simSale.create({
-      data: {
-        ...data,
-        baId: ba.id,
-        teamLeaderId: teamLeader.id,
-      },
-      include: {
-        organization: true,
-        ba: {
-          include: {
-            user: true,
-          },
-        },
-        teamLeader: {
-          include: {
-            user: true,
-          },
-        },
-      },
-    });
-  });
+  );
 };
 
 export const updateSimSale = async (

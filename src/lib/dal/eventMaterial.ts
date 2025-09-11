@@ -7,34 +7,39 @@ export const createEventMaterial = async (data: {
   quantity: number;
   observations?: string;
 }) => {
-  return await db.$transaction(async (tx) => {
-    const [event, material] = await Promise.all([
-      tx.event.findUnique({ where: { id: data.eventId } }),
-      tx.material.findUnique({ where: { id: data.materialId } }),
-    ]);
+  return await db.$transaction(
+    async (tx) => {
+      const [event, material] = await Promise.all([
+        tx.event.findUnique({ where: { id: data.eventId } }),
+        tx.material.findUnique({ where: { id: data.materialId } }),
+      ]);
 
-    if (!event) throw new NotFoundError("Event");
-    if (!material) throw new NotFoundError("Material");
+      if (!event) throw new NotFoundError("Event");
+      if (!material) throw new NotFoundError("Material");
 
-    // Check if material has enough quantity
-    if (material.quantity < data.quantity) {
-      throw new InsufficientStockError("Material");
+      // Check if material has enough quantity
+      if (material.quantity < data.quantity) {
+        throw new InsufficientStockError("Material");
+      }
+
+      // Update material quantity
+      await tx.material.update({
+        where: { id: material.id },
+        data: { quantity: material.quantity - data.quantity },
+      });
+
+      return await tx.eventMaterial.create({
+        data,
+        include: {
+          event: true,
+          material: true,
+        },
+      });
+    },
+    {
+      timeout: 10000,
     }
-
-    // Update material quantity
-    await tx.material.update({
-      where: { id: material.id },
-      data: { quantity: material.quantity - data.quantity },
-    });
-
-    return await tx.eventMaterial.create({
-      data,
-      include: {
-        event: true,
-        material: true,
-      },
-    });
-  });
+  );
 };
 
 export const returnEventMaterial = async (
@@ -42,36 +47,41 @@ export const returnEventMaterial = async (
   returnedQuantity: number,
   observations?: string
 ) => {
-  return await db.$transaction(async (tx) => {
-    const eventMaterial = await tx.eventMaterial.findUnique({
-      where: { id },
-      include: {
-        material: true,
-      },
-    });
+  return await db.$transaction(
+    async (tx) => {
+      const eventMaterial = await tx.eventMaterial.findUnique({
+        where: { id },
+        include: {
+          material: true,
+        },
+      });
 
-    if (!eventMaterial) throw new NotFoundError("Event Material");
+      if (!eventMaterial) throw new NotFoundError("Event Material");
 
-    // Update material quantity
-    await tx.material.update({
-      where: { id: eventMaterial.materialId },
-      data: { quantity: eventMaterial.material.quantity + returnedQuantity },
-    });
+      // Update material quantity
+      await tx.material.update({
+        where: { id: eventMaterial.materialId },
+        data: { quantity: eventMaterial.material.quantity + returnedQuantity },
+      });
 
-    // Update event material with return information
-    return await tx.eventMaterial.update({
-      where: { id },
-      data: {
-        returnedQuantity,
-        returnObservations: observations,
-        returnedAt: new Date(),
-      },
-      include: {
-        event: true,
-        material: true,
-      },
-    });
-  });
+      // Update event material with return information
+      return await tx.eventMaterial.update({
+        where: { id },
+        data: {
+          returnedQuantity,
+          returnObservations: observations,
+          returnedAt: new Date(),
+        },
+        include: {
+          event: true,
+          material: true,
+        },
+      });
+    },
+    {
+      timeout: 10000,
+    }
+  );
 };
 
 export const getEventMaterial = async (id: string) => {

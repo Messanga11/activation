@@ -1,15 +1,16 @@
 "use client";
 
 import { TablePage } from "@/components/table-page";
-import { listMembersAction } from "@/lib/actions/member/list";
 import { useValidators } from "@/components/ui/auto-form/utils/validators";
-import { PosType, UserRole } from "@/generated/prisma";
+import { PosType } from "@/generated/prisma";
 import { listPosAction } from "@/lib/actions/pos/list";
 import { createPosAction, updatePosAction } from "@/lib/actions/pos/create";
 import { getDsmsAction } from "@/lib/actions/dsm/list";
+import { useTranslations } from "next-intl";
 
 export default function OrganizationPosPage() {
   const v = useValidators();
+  const t = useTranslations();
 
   return (
     <TablePage
@@ -51,7 +52,7 @@ export default function OrganizationPosPage() {
         },
         {
           header: "Type",
-          cell: (row) => row.type,
+          cell: (row) => t(`common.dsm.${row.type}`),
         },
       ]}
       formFields={{
@@ -115,7 +116,7 @@ export default function OrganizationPosPage() {
           validator: v.string,
           props: {
             options: Object.values(PosType).map((type) => ({
-              label: type,
+              label: t(`common.dsm.${type}`),
               value: type,
             })),
           },

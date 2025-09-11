@@ -7,38 +7,43 @@ export const createDsmTopUp = async (data: {
   memberId: string;
   observations?: string;
 }) => {
-  return await db.$transaction(async (tx) => {
-    // Check if DSM and member exist
-    const [dsm, member] = await Promise.all([
-      tx.dsm.findUnique({ where: { id: data.dsmId } }),
-      tx.member.findUnique({ where: { id: data.memberId } }),
-    ]);
+  return await db.$transaction(
+    async (tx) => {
+      // Check if DSM and member exist
+      const [dsm, member] = await Promise.all([
+        tx.dsm.findUnique({ where: { id: data.dsmId } }),
+        tx.member.findUnique({ where: { id: data.memberId } }),
+      ]);
 
-    if (!dsm) throw new NotFoundError("Master");
-    if (!member) throw new NotFoundError("Member");
+      if (!dsm) throw new NotFoundError("Master");
+      if (!member) throw new NotFoundError("Member");
 
-    // Update DSM amount
-    await tx.dsm.update({
-      where: { id: dsm.id },
-      data: { amount: dsm.amount + data.amount },
-    });
+      // Update DSM amount
+      await tx.dsm.update({
+        where: { id: dsm.id },
+        data: { amount: dsm.amount + data.amount },
+      });
 
-    // Create the top-up
-    return await tx.dsmTopUp.create({
-      data: {
-        ...data,
-        previousAmount: dsm.amount,
-      },
-      include: {
-        dsm: true,
-        member: {
-          include: {
-            user: true,
+      // Create the top-up
+      return await tx.dsmTopUp.create({
+        data: {
+          ...data,
+          previousAmount: dsm.amount,
+        },
+        include: {
+          dsm: true,
+          member: {
+            include: {
+              user: true,
+            },
           },
         },
-      },
-    });
-  });
+      });
+    },
+    {
+      timeout: 10000,
+    }
+  );
 };
 
 export const getDsmTopUp = async (id: string) => {

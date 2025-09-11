@@ -45,12 +45,7 @@ export function AppSelect<T>({
 
   return (
     <Select onValueChange={onChange} value={value} defaultValue={value}>
-      <SelectTrigger
-        className={cn(
-          "pl-[28px] pr-[24px] rounded-full min-h-[52px] border-gray text-base",
-          triggerClassName
-        )}
-      >
+      <SelectTrigger className={cn(triggerClassName)}>
         <SelectValue
           className={cn("[data-placeholder]:text-gray", selectValueClassName)}
           placeholder={placeholder ?? "Please select an option"}

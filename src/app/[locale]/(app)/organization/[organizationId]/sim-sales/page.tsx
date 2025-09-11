@@ -20,6 +20,7 @@ export default function SimSalesPage() {
     <TablePage
       title="Ventes de SIM"
       description="Gérez les ventes de SIM de votre organisation"
+      exportModel="simSale"
       columns={[
         {
           header: "Client",

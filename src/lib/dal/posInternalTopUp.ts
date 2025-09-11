@@ -20,49 +20,55 @@ export const createPosInternalTopUp = async (data: {
 
   if (!organizationId) throw new AuthorizationError();
 
-  return await db.$transaction(async (tx) => {
-    // Check if POS and member exist
-    const [pos, member] = await Promise.all([
-      tx.pos.findUnique({ where: { id: data.posId } }),
-      tx.member.findUnique({ where: { id: session?.user.memberId } }),
-    ]);
+  return await db.$transaction(
+    async (tx) => {
+      // Check if POS and member exist
+      const [pos, member] = await Promise.all([
+        tx.pos.findUnique({ where: { id: data.posId } }),
+        tx.member.findUnique({ where: { id: session?.user.memberId } }),
+      ]);
 
-    if (!pos) throw new NotFoundError("POS");
-    if (!member) throw new NotFoundError("Member");
+      if (!pos) throw new NotFoundError("POS");
+      if (!member) throw new NotFoundError("Member");
 
-    if (pos.organizationId !== organizationId) throw new AuthorizationError();
+      if (pos.organizationId !== organizationId) throw new AuthorizationError();
 
-    if (pos.type !== PosType.OFFICE) {
-      throw new Error("POS type must be internal");
-    }
+      if (pos.type !== PosType.OFFICE) {
+        throw new Error("POS type must be internal");
+      }
 
-    // Check if POS has enough amount
-    if (pos.amount < data.amount) {
-      throw new InsufficientStockError("POS");
-    }
+      // Check if POS has enough amount
+      if (pos.amount < data.amount) {
+        throw new InsufficientStockError("POS");
+      }
 
-    // Update POS amount
-    await tx.pos.update({
-      where: { id: pos.id },
-      data: { amount: pos.amount - data.amount },
-    });
+      // Update POS amount
+      await tx.pos.update({
+        where: { id: pos.id },
+        data: { amount: pos.amount - data.amount },
+      });
 
-    // Create the top-up
-    return await tx.posInternalTopUp.create({
-      data: {
-        ...data,
-        previousAmount: pos.amount,
-      },
-      include: {
-        pos: true,
-        member: {
-          include: {
-            user: true,
+      // Create the top-up
+      // @ts-expect-error
+      return await tx.posInternalTopUp.create({
+        data: {
+          ...data,
+          previousAmount: pos.amount,
+        },
+        include: {
+          pos: true,
+          member: {
+            include: {
+              user: true,
+            },
           },
         },
-      },
-    });
-  });
+      });
+    },
+    {
+      timeout: 10000,
+    }
+  );
 };
 
 export const getInternalPosTopUps = async (
@@ -78,6 +84,7 @@ export const getInternalPosTopUps = async (
 
   const skip = (page - 1) * limit;
 
+  // biome-ignore lint/suspicious/noExplicitAny: any required
   const where: any = {};
 
   if (posId) {
@@ -99,6 +106,7 @@ export const getInternalPosTopUps = async (
   }
 
   const [posInternalTopUps, total] = await Promise.all([
+    // @ts-expect-error
     db.posInternalTopUp.findMany({
       where,
       skip,
@@ -113,6 +121,7 @@ export const getInternalPosTopUps = async (
         },
       },
     }),
+    // @ts-expect-error
     db.posInternalTopUp.count({ where }),
   ]);
 

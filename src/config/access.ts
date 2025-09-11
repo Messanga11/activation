@@ -11,6 +11,7 @@ export const ACCESS = {
       read: true,
       update: false,
       delete: false,
+      export: false,
     },
     [ROUTES.organizationTransactionSimBa("[organizationId]")]: {
       read: true,

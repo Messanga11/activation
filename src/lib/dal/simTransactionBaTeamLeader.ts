@@ -20,64 +20,69 @@ export const createSimTransactionBaTeamLeader = async (data: {
 
   if (!data.teamLeaderId) throw new Error("Team Leader ID is required");
 
-  return await db.$transaction(async (tx) => {
-    const [member, teamLeader, ba] = await Promise.all([
-      tx.member.findUnique({ where: { id: data.memberId } }),
-      tx.member.findUnique({ where: { id: data.teamLeaderId } }),
-      tx.member.findUnique({ where: { id: data.baId } }),
-    ]);
+  return await db.$transaction(
+    async (tx) => {
+      const [member, teamLeader, ba] = await Promise.all([
+        tx.member.findUnique({ where: { id: data.memberId } }),
+        tx.member.findUnique({ where: { id: data.teamLeaderId } }),
+        tx.member.findUnique({ where: { id: data.baId } }),
+      ]);
 
-    if (!member) throw new NotFoundError("Member");
-    if (!teamLeader) throw new NotFoundError("Team Leader");
-    if (!ba) throw new NotFoundError("BA");
+      if (!member) throw new NotFoundError("Member");
+      if (!teamLeader) throw new NotFoundError("Team Leader");
+      if (!ba) throw new NotFoundError("BA");
 
-    // Check if team leader has enough SIMs
-    if (teamLeader.simCount !== null && teamLeader.simCount < data.quantity) {
-      throw new InsufficientStockError("SIM");
-    }
+      // Check if team leader has enough SIMs
+      if (teamLeader.simCount !== null && teamLeader.simCount < data.quantity) {
+        throw new InsufficientStockError("SIM");
+      }
 
-    // Update team leader SIM count
-    if (teamLeader.simCount !== null) {
-      await tx.member.update({
-        where: { id: teamLeader.id },
-        data: { simCount: teamLeader.simCount - data.quantity },
+      // Update team leader SIM count
+      if (teamLeader.simCount !== null) {
+        await tx.member.update({
+          where: { id: teamLeader.id },
+          data: { simCount: teamLeader.simCount - data.quantity },
+        });
+      }
+
+      // Update BA SIM count
+      if (ba.simCount !== null) {
+        await tx.member.update({
+          where: { id: ba.id },
+          data: { simCount: ba.simCount + data.quantity },
+        });
+      }
+
+      return await tx.simTransactionBaTeamLeader.create({
+        data: {
+          ...data,
+          teamLeaderId: data.teamLeaderId ?? "",
+          memberId: session.user.memberId ?? "",
+          baId: data.baId,
+        },
+        include: {
+          member: {
+            include: {
+              user: true,
+            },
+          },
+          teamLeader: {
+            include: {
+              user: true,
+            },
+          },
+          ba: {
+            include: {
+              user: true,
+            },
+          },
+        },
       });
+    },
+    {
+      timeout: 10000,
     }
-
-    // Update BA SIM count
-    if (ba.simCount !== null) {
-      await tx.member.update({
-        where: { id: ba.id },
-        data: { simCount: ba.simCount + data.quantity },
-      });
-    }
-
-    return await tx.simTransactionBaTeamLeader.create({
-      data: {
-        ...data,
-        teamLeaderId: data.teamLeaderId ?? "",
-        memberId: session.user.memberId ?? "",
-        baId: data.baId,
-      },
-      include: {
-        member: {
-          include: {
-            user: true,
-          },
-        },
-        teamLeader: {
-          include: {
-            user: true,
-          },
-        },
-        ba: {
-          include: {
-            user: true,
-          },
-        },
-      },
-    });
-  });
+  );
 };
 
 export const getSimTransactionBaTeamLeader = async (

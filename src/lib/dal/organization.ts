@@ -133,7 +133,8 @@ export const getOrganizations = async (
 ) => {
   const skip = (page - 1) * limit;
 
-  const where = search
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  const where: any = search
     ? {
         OR: [
           { name: { contains: search, mode: "insensitive" } },

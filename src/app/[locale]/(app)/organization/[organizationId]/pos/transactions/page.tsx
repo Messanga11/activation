@@ -18,6 +18,7 @@ export default function OrganizationTransactionDsmToPosPage() {
       description="Gérez les transactions Master vers DSM de votre organisation"
       dataService={getPosTopUpsAction}
       createAction={createPosTopUpAction}
+      exportModel="posTopUp"
       // updateAction={updatePosTopUpAction}
       // deleteAction={deleteMemberAction}
       columns={[
@@ -105,7 +106,6 @@ export default function OrganizationTransactionDsmToPosPage() {
           props: {
             action: async (keyword: string) => {
               const res = await getDsmsAction({ search: keyword });
-              console.log(res);
               return res.data?.data ?? [];
             },
             getOptionLabel: (option) => `${option.name} (${option.number})`,
@@ -123,7 +123,6 @@ export default function OrganizationTransactionDsmToPosPage() {
           props: {
             action: async (keyword: string) => {
               const res = await listPosAction({ search: keyword });
-              console.log(res);
               return res.data?.data ?? [];
             },
             getOptionLabel: (option) =>

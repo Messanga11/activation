@@ -15,7 +15,6 @@ import {
   DialogClose,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Plus, Search, Edit, Trash, Loader2 } from "lucide-react";
 import { useTableData } from "@/hooks/use-table-data";
 import { cn } from "@/lib/utils";
@@ -25,6 +24,7 @@ import { authClient } from "@/lib/auth-client";
 import { useParams, usePathname } from "next/navigation";
 import { UserRole } from "@/generated/prisma";
 import { useValidators } from "./ui/auto-form/utils/validators";
+import ExportButton from "./export-button";
 
 export interface TablePageColumn<T> {
   header: string;
@@ -69,7 +69,9 @@ export interface TablePageProps<T> {
   canCreate?: boolean;
   canEdit?: boolean;
   canDelete?: boolean;
+  canExport?: boolean;
   filters?: AutoFormProps<any>["fields"];
+  exportModel?: "simSale" | "posTopUp";
 }
 
 export function TablePage<T extends object>({
@@ -89,7 +91,9 @@ export function TablePage<T extends object>({
   canCreate: _canCreate,
   canEdit: _canEdit,
   canDelete: _canDelete,
+  canExport: _canExport,
   filters,
+  exportModel,
 }: TablePageProps<T>) {
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const [editingItem, setEditingItem] = useState<any>(null);
@@ -140,6 +144,10 @@ export function TablePage<T extends object>({
   const canDelete =
     _canDelete ??
     (isAdmin || (availableActions ? availableActions.delete : false));
+
+  const canExport =
+    _canExport ??
+    (isAdmin || (availableActions ? availableActions.export : false));
 
   const handleSearch = (filters: any) => {
     updateParams({ ...filters, page: 1 });
@@ -255,85 +263,87 @@ export function TablePage<T extends object>({
     <div className={cn("flex flex-1 flex-col p-5", className)}>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold">{title}</h2>
+          <h2 className="text-4xl font-bold">{title}</h2>
           <p className="text-muted-foreground text-md text-balance">
             {description}
           </p>
         </div>
-        {canCreate && createAction && (
-          <Dialog
-            open={isDialogOpen}
-            onOpenChange={isLoading ? undefined : setIsDialogOpen}
-          >
-            <DialogTrigger asChild>
-              <Button
-                onClick={() => {
-                  setEditingItem(null);
-                  setFormError(null);
-                }}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Ajouter
-              </Button>
-            </DialogTrigger>
-            <DialogContent
-              className={cn(
-                isLoading && "pointer-events-none",
-                "p-0 overflow-hidden"
-              )}
+        <div className="flex space-x-2">
+          {canExport && exportModel && <ExportButton model={exportModel} />}
+          {canCreate && createAction && (
+            <Dialog
+              open={isDialogOpen}
+              onOpenChange={isLoading ? undefined : setIsDialogOpen}
             >
-              <ScrollArea className="max-h-[calc(100vh-20rem)]">
-                <div className="relative p-5">
-                  {isLoading && (
-                    <div className="absolute inset-0 flex items-center justify-center z-50 bg-muted/70">
-                      <Loader2 className="animate-spin size-5" />
-                    </div>
-                  )}
-                  <DialogHeader>
-                    <DialogTitle>
-                      {editingItem ? "Modifier" : "Ajouter"} {title}
-                    </DialogTitle>
-                    <DialogDescription>
-                      Remplissez les champs suivants pour{" "}
-                      {editingItem ? "modifier" : "ajouter"} un élément
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="mt-4">
-                    <AutoForm
-                      btnRef={btnRef}
-                      onSubmit={editingItem ? handleEdit : handleCreate}
-                      onFormChange={onFormValuesChange}
-                      fields={formFields}
-                      initialItem={editingItem}
-                    />
-                    {formError && (
-                      <div className="text-destructive text-sm mt-2">
-                        {formError}
+              <DialogTrigger asChild>
+                <Button
+                  onClick={() => {
+                    setEditingItem(null);
+                    setFormError(null);
+                  }}
+                >
+                  <Plus className="h-4 w-4 ld:mr-2" />
+                  <span className="hidden lg:inline">Ajouter</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent
+                className={cn(
+                  isLoading && "pointer-events-none",
+                  "p-0 overflow-hidden"
+                )}
+              >
+                <ScrollArea className="max-h-[calc(100vh-20rem)]">
+                  <div className="relative p-5">
+                    {isLoading && (
+                      <div className="absolute inset-0 flex items-center justify-center z-50 bg-muted/70">
+                        <Loader2 className="animate-spin size-5" />
                       </div>
                     )}
+                    <DialogHeader>
+                      <DialogTitle>
+                        {editingItem ? "Modifier" : "Ajouter"} {title}
+                      </DialogTitle>
+                      <DialogDescription>
+                        Remplissez les champs suivants pour{" "}
+                        {editingItem ? "modifier" : "ajouter"} un élément
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="mt-4">
+                      <AutoForm
+                        btnRef={btnRef}
+                        onSubmit={editingItem ? handleEdit : handleCreate}
+                        onFormChange={onFormValuesChange}
+                        fields={formFields}
+                        initialItem={editingItem}
+                      />
+                      {formError && (
+                        <div className="text-destructive text-sm mt-2">
+                          {formError}
+                        </div>
+                      )}
+                    </div>
+                    <DialogFooter>
+                      <DialogClose asChild>
+                        <Button variant="outline">Annuler</Button>
+                      </DialogClose>
+                      <Button onClick={() => btnRef.current?.click()}>
+                        {editingItem ? "Modifier" : "Créer"}
+                      </Button>
+                    </DialogFooter>
                   </div>
-                  <DialogFooter>
-                    <DialogClose asChild>
-                      <Button variant="outline">Annuler</Button>
-                    </DialogClose>
-                    <Button onClick={() => btnRef.current?.click()}>
-                      {editingItem ? "Modifier" : "Créer"}
-                    </Button>
-                  </DialogFooter>
-                </div>
-              </ScrollArea>
-            </DialogContent>
-          </Dialog>
-        )}
+                </ScrollArea>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
       </div>
 
       <AutoForm
         onFormChange={(values) => handleSearch(values)}
         submitBtnClassName="hidden"
-        className="flex items-center gap-2"
+        className="space-y-0 mb-4 flex flex-col lg:flex-row lg:items-center gap-2 flex-wrap"
         fields={{
           search: {
-            label: "",
             props: {
               startIcon: <Search className="h-4 w-4" />,
             },
@@ -345,7 +355,7 @@ export function TablePage<T extends object>({
         }}
       />
 
-      <div className="lg:w-[calc(100vw-330px)] rounded-[15px] overflow-hidden">
+      <div className="w-full rounded-[15px] overflow-hidden">
         <ShinyTable
           // @ts-expect-error
           cols={actionColumns}

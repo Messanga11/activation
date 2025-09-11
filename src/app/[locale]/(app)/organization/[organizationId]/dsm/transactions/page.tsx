@@ -66,9 +66,6 @@ export default function OrganizationDsmTransactionsPage() {
           validator: v.string_nr,
         },
       }}
-      canCreate={true}
-      canEdit={true}
-      canDelete={true}
     />
   );
 }
