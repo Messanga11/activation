@@ -41,6 +41,7 @@ interface ShinyTableProps<T extends object> {
   totalPages?: number;
   setCurrentPage?: (page: number) => void;
   resolveData?: (data: any) => T[];
+  rowClassName?: (row: T) => string;
 }
 
 /**
@@ -62,6 +63,7 @@ export function ShinyTable<T extends object>({
   totalPages: _totalPages,
   setCurrentPage,
   resolveData,
+  rowClassName,
 }: ShinyTableProps<T>) {
   const [ref] = useAutoAnimate();
 
@@ -110,7 +112,7 @@ export function ShinyTable<T extends object>({
                 }`}
                 className={cn(
                   "rounded-[10px] overflow-hidden hover:bg-transparent",
-                  striped && index % 2 === 0 && "bg-light3"
+                  striped && index % 2 === 0 && "bg-muted/70"
                 )}
               >
                 {cols.map((_, indexCol) => (
@@ -119,7 +121,7 @@ export function ShinyTable<T extends object>({
                     className={cn(
                       "py-3 px-5",
                       cellClassName,
-                      striped && index % 2 === 0 && "bg-light3",
+                      striped && index % 2 === 0 && "bg-muted/70",
                       indexCol === 0 && "rounded-l-[10px]",
                       indexCol === cols.length - 1 && "rounded-r-[10px]"
                     )}
@@ -140,8 +142,9 @@ export function ShinyTable<T extends object>({
               <TableRow
                 key={row.id}
                 className={cn(
-                  "rounded-[10px] overflow-hidden hover:bg-transparent",
-                  striped && index % 2 === 0 && "bg-light3"
+                  "rounded-[10px] overflow-hidden",
+                  striped && index % 2 === 0 && "bg-muted/70",
+                  rowClassName?.(row)
                 )}
               >
                 {cols.map((col, indexCol) => {
@@ -157,12 +160,12 @@ export function ShinyTable<T extends object>({
                         "py-3 px-5",
                         col.cellClassName,
                         cellClassName,
-                        striped && index % 2 === 0 && "bg-light3",
+                        striped && index % 2 === 0 && "bg-muted/70",
                         indexCol === 0 && "rounded-l-[10px]",
                         indexCol === cols.length - 1 && "rounded-r-[10px]"
                       )}
                     >
-                      {value as any}
+                      {value}
                     </TableCell>
                   );
                 })}

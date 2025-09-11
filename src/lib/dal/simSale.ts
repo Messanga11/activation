@@ -171,24 +171,45 @@ export const getSimSales = async (
   }
 
   const [simSales, total] = await Promise.all([
-    db.simSale.findMany({
-      where,
-      skip,
-      take: limit,
-      orderBy: { createdAt: "desc" },
-      include: {
-        organization: true,
-        ba: {
-          include: {
-            user: true,
+    db.$transaction(async (tx) => {
+      const simSales = await tx.simSale.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: "desc" },
+        include: {
+          organization: true,
+          ba: {
+            include: {
+              user: true,
+            },
+          },
+          teamLeader: {
+            include: {
+              user: true,
+            },
           },
         },
-        teamLeader: {
-          include: {
-            user: true,
+      });
+
+      for (const simSale of simSales) {
+        const count = await tx.simSale.count({
+          where: {
+            OR: [
+              { blueNumber: simSale.blueNumber },
+              { otherNumber: simSale.otherNumber },
+              { imei: simSale.imei },
+              { iccid: simSale.iccid },
+            ],
           },
-        },
-      },
+        });
+        if (count > 1) {
+          // biome-ignore lint/suspicious/noExplicitAny: needed
+          (simSale as any).isDuplicated = true;
+        }
+      }
+
+      return simSales;
     }),
     db.simSale.count({ where }),
   ]);

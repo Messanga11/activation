@@ -72,6 +72,7 @@ export interface TablePageProps<T> {
   canExport?: boolean;
   filters?: AutoFormProps<any>["fields"];
   exportModel?: "simSale" | "posTopUp";
+  rowClassName?: (row: T) => string;
 }
 
 export function TablePage<T extends object>({
@@ -94,6 +95,7 @@ export function TablePage<T extends object>({
   canExport: _canExport,
   filters,
   exportModel,
+  rowClassName,
 }: TablePageProps<T>) {
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const [editingItem, setEditingItem] = useState<any>(null);
@@ -365,6 +367,7 @@ export function TablePage<T extends object>({
           totalPages={pagination.pages}
           setCurrentPage={handlePageChange}
           resolveData={resolveData}
+          rowClassName={rowClassName}
         />
       </div>
 

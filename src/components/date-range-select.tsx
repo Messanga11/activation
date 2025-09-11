@@ -70,11 +70,15 @@ export function DateRangeSelect({
     } else if (selectedQuickDate === "thisWeek") {
       setDateRange(quickDateOptions.thisWeek);
     } else if (selectedQuickDate === "thisMonth") {
-      setDateRange(quickDateOptions.thisMonth);
+      setDateRange({
+        from: moment().startOf("month").toDate(),
+        to: moment().endOf("month").toDate(),
+      });
     }
   }, [selectedQuickDate]);
 
   const selected = Object.entries(quickDateOptions).find(([, v]) => {
+    console.log(v.from, v.to, dateRange.from, dateRange.to);
     return (
       moment(v.from).format("ll") === moment(dateRange.from).format("ll") &&
       moment(v.to).format("ll") === moment(dateRange.to).format("ll")
@@ -120,8 +124,8 @@ export function DateRangeSelect({
                 <SelectContent align="end">
                   <SelectItem value="today">Aujourd'hui</SelectItem>
                   <SelectItem value="yesterday">Hier</SelectItem>
-                  <SelectItem value="this-week">Cette semaine</SelectItem>
-                  <SelectItem value="this-month">Ce mois</SelectItem>
+                  <SelectItem value="thisWeek">Cette semaine</SelectItem>
+                  <SelectItem value="thisMonth">Ce mois</SelectItem>
                 </SelectContent>
               </Select>
             </CardAction>

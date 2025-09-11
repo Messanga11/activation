@@ -21,6 +21,10 @@ export default function SimSalesPage() {
       title="Ventes de SIM"
       description="Gérez les ventes de SIM de votre organisation"
       exportModel="simSale"
+      dataService={listSimSalesAction}
+      createAction={createSimSaleAction}
+      // biome-ignore lint/suspicious/noExplicitAny: needed
+      rowClassName={(row) => ((row as any).isDuplicated ? "bg-red-50" : "")}
       columns={[
         {
           header: "Client",
@@ -104,8 +108,6 @@ export default function SimSalesPage() {
           ),
         },
       ]}
-      dataService={listSimSalesAction}
-      createAction={createSimSaleAction}
       formFields={{
         customerName: {
           label: "Nom du client",
