@@ -1,4 +1,4 @@
-import { UserRole } from "@/generated/prisma";
+import { SimSaleStatus, UserRole } from "@/generated/prisma";
 import { db } from "@/lib/db";
 import { InsufficientStockError, NotFoundError } from "@/lib/errors";
 
@@ -72,6 +72,53 @@ export const createSimSale = async (data: {
       timeout: 10000,
     }
   );
+};
+
+export const updateSimStatus = async (
+  id: string,
+  isRejected?: boolean,
+  rejectReason?: string
+) => {
+  const simSale = await db.simSale.findUnique({ where: { id } });
+  if (!simSale) throw new NotFoundError("Sim Sale");
+
+  if (simSale.status === SimSaleStatus.ACTIVATED)
+    throw new Error("Sim Sale status is already treated");
+
+  let status: SimSaleStatus | undefined;
+
+  if (simSale.status === SimSaleStatus.ACTIVATING) {
+    status = isRejected ? SimSaleStatus.REJECTED : SimSaleStatus.ACTIVATED;
+  } else {
+    status = SimSaleStatus.REJECTED;
+  }
+
+  if (simSale.status === SimSaleStatus.REJECTED) {
+    status = SimSaleStatus.ACTIVATING;
+  }
+
+  if (!status) throw new Error("Invalid status");
+
+  return await db.simSale.update({
+    where: { id },
+    data: {
+      status,
+      rejectReason: isRejected ? rejectReason : "",
+    },
+    include: {
+      organization: true,
+      ba: {
+        include: {
+          user: true,
+        },
+      },
+      teamLeader: {
+        include: {
+          user: true,
+        },
+      },
+    },
+  });
 };
 
 export const updateSimSale = async (
@@ -170,8 +217,9 @@ export const getSimSales = async (
     ];
   }
 
-  const [simSales, total] = await Promise.all([
+  const [simSalesWithDuplicates, total] = await Promise.all([
     db.$transaction(async (tx) => {
+      // 1. Récupérer les enregistrements de la page courante
       const simSales = await tx.simSale.findMany({
         where,
         skip,
@@ -192,22 +240,96 @@ export const getSimSales = async (
         },
       });
 
-      for (const simSale of simSales) {
-        const count = await tx.simSale.count({
+      if (simSales.length === 0) return simSales;
+
+      // 2. Collecter les valeurs à vérifier depuis la page courante
+      const valuesToCheck = new Map<string, string[]>(); // field -> values[]
+
+      simSales.forEach((sale) => {
+        if (sale.blueNumber && sale.blueNumber.trim() !== "") {
+          if (!valuesToCheck.has("blueNumber")) {
+            valuesToCheck.set("blueNumber", []);
+          }
+          valuesToCheck.get("blueNumber")!.push(sale.blueNumber);
+        }
+
+        if (sale.iccid && sale.iccid.trim() !== "") {
+          if (!valuesToCheck.has("iccid")) {
+            valuesToCheck.set("iccid", []);
+          }
+          valuesToCheck.get("iccid")!.push(sale.iccid);
+        }
+
+        // Ajouter d'autres champs si nécessaire
+        // if (sale.otherNumber && sale.otherNumber.trim() !== '') {
+        //   if (!valuesToCheck.has('otherNumber')) {
+        //     valuesToCheck.set('otherNumber', []);
+        //   }
+        //   valuesToCheck.get('otherNumber')!.push(sale.otherNumber);
+        // }
+      });
+
+      // 3. Pour chaque champ, compter les occurrences dans TOUTE la base
+      const duplicateValues = new Set<string>(); // stockage: "field:value"
+
+      for (const [field, values] of valuesToCheck.entries()) {
+        if (values.length === 0) continue;
+
+        // Grouper par valeur pour compter les occurrences dans toute la BD
+        const countResults = await tx.simSale.groupBy({
+          by: [field as keyof typeof tx.simSale.fields],
           where: {
-            OR: [
-              { blueNumber: simSale.blueNumber },
-              { otherNumber: simSale.otherNumber },
-              { imei: simSale.imei },
-              { iccid: simSale.iccid },
-            ],
+            [field]: { in: values },
+          },
+          _count: {
+            id: true,
+          },
+          having: {
+            id: {
+              _count: {
+                gt: 1,
+              },
+            },
           },
         });
-        if (count > 1) {
-          // biome-ignore lint/suspicious/noExplicitAny: needed
-          (simSale as any).isDuplicated = true;
-        }
+
+        // Marquer les valeurs qui apparaissent plus d'une fois
+        countResults.forEach((result) => {
+          const value = result[field as keyof typeof result] as string;
+          if (value) {
+            duplicateValues.add(`${field}:${value}`);
+          }
+        });
       }
+
+      // 4. Marquer les enregistrements de la page courante qui sont dupliqués
+      simSales.forEach((sale) => {
+        let isDuplicated = false;
+
+        if (sale.blueNumber && sale.blueNumber.trim() !== "") {
+          if (duplicateValues.has(`blueNumber:${sale.blueNumber}`)) {
+            isDuplicated = true;
+          }
+        }
+
+        if (sale.iccid && sale.iccid.trim() !== "") {
+          if (duplicateValues.has(`iccid:${sale.iccid}`)) {
+            isDuplicated = true;
+          }
+        }
+
+        // Ajouter d'autres champs si nécessaire
+        // if (sale.otherNumber && sale.otherNumber.trim() !== '') {
+        //   if (duplicateValues.has(`otherNumber:${sale.otherNumber}`)) {
+        //     isDuplicated = true;
+        //   }
+        // }
+
+        if (isDuplicated) {
+          // biome-ignore lint/suspicious/noExplicitAny: needed
+          (sale as any).isDuplicated = true;
+        }
+      });
 
       return simSales;
     }),
@@ -215,7 +337,7 @@ export const getSimSales = async (
   ]);
 
   return {
-    data: simSales,
+    data: simSalesWithDuplicates,
     pagination: {
       page,
       limit,

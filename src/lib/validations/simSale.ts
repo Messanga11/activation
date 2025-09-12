@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { SimSaleStatus } from "@/generated/prisma";
 
 export const simSaleCreateSchema = z.object({
   organizationId: z.string().cuid(),
@@ -10,6 +11,12 @@ export const simSaleCreateSchema = z.object({
   imei: z.string().min(1, "IMEI is required"),
   iccid: z.string().min(1, "ICCID is required"),
   baId: z.string().cuid(),
+});
+
+export const simSaleUpdateStatusSchema = z.object({
+  id: z.string().cuid(),
+  isRejected: z.boolean().optional(),
+  rejectReason: z.string().optional(),
 });
 
 export const simSaleUpdateSchema = simSaleCreateSchema.partial().extend({

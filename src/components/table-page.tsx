@@ -25,6 +25,7 @@ import { useParams, usePathname } from "next/navigation";
 import { UserRole } from "@/generated/prisma";
 import { useValidators } from "./ui/auto-form/utils/validators";
 import ExportButton from "./export-button";
+import { useQueryClient } from "@tanstack/react-query";
 
 export interface TablePageColumn<T> {
   header: string;
@@ -105,11 +106,13 @@ export function TablePage<T extends object>({
   const [formError, setFormError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const queryClient = useQueryClient();
+
   const session = authClient.useSession();
   const pathname = usePathname();
   const _params = useParams();
 
-  const { data, loading, pagination, updateParams, refresh } =
+  const { data, loading, pagination, updateParams } =
     // @ts-expect-error
     useTableData<T>(dataService, title, {
       refetchInterval,
@@ -174,7 +177,9 @@ export function TablePage<T extends object>({
 
     if (result.success) {
       setIsDialogOpen(false);
-      refresh();
+      queryClient.refetchQueries({
+        queryKey: ["tableData"],
+      });
     } else {
       setFormError(result.error || "Failed to create item");
     }
@@ -197,7 +202,9 @@ export function TablePage<T extends object>({
     if (result.success) {
       setIsDialogOpen(false);
       setEditingItem(null);
-      refresh();
+      queryClient.refetchQueries({
+        queryKey: ["tableData"],
+      });
     } else {
       setFormError(result.error || "Failed to update item");
     }
@@ -213,7 +220,9 @@ export function TablePage<T extends object>({
     if (result.success) {
       setIsDeleteDialogOpen(false);
       setItemToDelete(null);
-      refresh();
+      queryClient.refetchQueries({
+        queryKey: ["tableData"],
+      });
     } else {
       setFormError(result.error || "Failed to delete item");
     }

@@ -7,12 +7,31 @@ import { createSimSaleAction } from "@/lib/actions/simSale/create";
 import { useValidators } from "@/components/ui/auto-form/utils/validators";
 import { listSimSalesAction } from "@/lib/actions/simSale/list";
 import { listMembersAction } from "@/lib/actions/member/list";
-import { UserRole } from "@/generated/prisma";
+import { SimSale, SimSaleStatus, UserRole } from "@/generated/prisma";
 import { authClient } from "@/lib/auth-client";
+import { updateStatusAction } from "@/lib/actions/simSale/update-status";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { AutoForm } from "@/components/ui/auto-form";
+import { useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { showAlert } from "@/components/show-alert";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function SimSalesPage() {
   const v = useValidators();
   const session = authClient.useSession();
+  const queryClient = useQueryClient();
 
   const isBA = session?.data?.user?.role === UserRole.BA;
 
@@ -23,9 +42,62 @@ export default function SimSalesPage() {
       exportModel="simSale"
       dataService={listSimSalesAction}
       createAction={createSimSaleAction}
-      // biome-ignore lint/suspicious/noExplicitAny: needed
+      otherActions={(row) => [
+        !row.status ||
+        row.status === SimSaleStatus.ACTIVATING ||
+        row.status === SimSaleStatus.REJECTED ? (
+          <Button
+            key={`activate-${row.id}`}
+            variant="outline"
+            onClick={() => {
+              showAlert({
+                title: !row.status
+                  ? "Démarrer l'activation"
+                  : row.status === SimSaleStatus.REJECTED
+                  ? "Relancer l'activation"
+                  : row.status === SimSaleStatus.ACTIVATING
+                  ? "Terminer l'activation"
+                  : "",
+                message: "Voulez-vous vraiment démarrer l'activation ?",
+                onConfirm: async () => {
+                  const data = await updateStatusAction({
+                    id: row.id,
+                    isRejected: false,
+                  });
+                  if (!data.success) {
+                    throw new Error(data.error);
+                  }
+                  queryClient.resetQueries({
+                    queryKey: ["tableData"],
+                  });
+                },
+              });
+            }}
+          >
+            {!row.status
+              ? "Démarer l'activation"
+              : row.status === SimSaleStatus.REJECTED
+              ? "Relancer l'activation"
+              : row.status === SimSaleStatus.ACTIVATING
+              ? "Terminer l'activation"
+              : ""}
+          </Button>
+        ) : null,
+        row.status === SimSaleStatus.ACTIVATING ? (
+          <RejectSimSale key={`reject-${row.id}`} row={row} />
+        ) : null,
+      ]}
       rowClassName={(row) =>
-        (row as any).isDuplicated ? "bg-destructive/20" : ""
+        // biome-ignore lint/suspicious/noExplicitAny: needed
+        (row as any).isDuplicated
+          ? "bg-orange-800"
+          : row.status === SimSaleStatus.ACTIVATING
+          ? "bg-blue-800"
+          : row.status === SimSaleStatus.ACTIVATED
+          ? "bg-green-800"
+          : row.status === SimSaleStatus.REJECTED
+          ? "bg-destructive/20"
+          : ""
       }
       columns={[
         {
@@ -109,6 +181,14 @@ export default function SimSalesPage() {
             </div>
           ),
         },
+        {
+          header: "Raison de refus",
+          cell: (row) => (
+            <div className="flex flex-col">
+              <span>{row.rejectReason || "-"}</span>
+            </div>
+          ),
+        },
       ]}
       formFields={{
         customerName: {
@@ -164,5 +244,87 @@ export default function SimSalesPage() {
             }),
       }}
     />
+  );
+}
+
+function RejectSimSale({ row }: { row: SimSale }) {
+  const v = useValidators();
+  const btnReject = useRef<HTMLButtonElement>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
+
+  const onSubmit = async (data: { rejectReason: string }) => {
+    try {
+      setLoading(true);
+      const res = await updateStatusAction({
+        id: row.id,
+        isRejected: true,
+        rejectReason: data.rejectReason,
+      });
+      if (!res.success) {
+        throw new Error(res.error);
+      }
+      queryClient.resetQueries({
+        queryKey: ["tableData"],
+      });
+      toast.success("Vente refusée");
+      setIsOpen(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "An error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog key={`reject-${row.id}`} open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant="destructive"
+          onClick={() => {
+            btnReject.current?.click();
+          }}
+        >
+          Refuser
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Refuser la vente</DialogTitle>
+          <DialogDescription>
+            Voulez-vous vraiment refuser la vente ?
+          </DialogDescription>
+
+          <AutoForm
+            btnRef={btnReject}
+            disabled={loading}
+            fields={{
+              rejectReason: {
+                label: "Raison",
+                type: "textarea",
+                helper: "Pourquoi refuser la vente ?",
+                validator: v.string,
+              },
+            }}
+            onSubmit={onSubmit}
+          />
+
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button disabled={loading} variant="outline">
+                Annuler
+              </Button>
+            </DialogClose>
+            <Button
+              disabled={loading}
+              onClick={() => btnReject.current?.click()}
+            >
+              {loading ? <Loader2 className="animate-spin" /> : "Confirmer"}
+            </Button>
+          </DialogFooter>
+        </DialogHeader>
+      </DialogContent>
+    </Dialog>
   );
 }
