@@ -108,13 +108,15 @@ export type IKeysToObject<S, T = any> = S extends `${infer U}.${infer V}`
       [K in U]: IKeysToObject<V>;
     }
   : S extends string | number
-  ? {
-      [K in S]: T;
-    }
-  : T;
+    ? {
+        [K in S]: T;
+      }
+    : T;
 
 type IUnionToIntersection<U> = (
-  U extends any ? (k: U) => void : never
+  U extends any
+    ? (k: U) => void
+    : never
 ) extends (k: infer I) => void
   ? I
   : never;
@@ -130,7 +132,7 @@ export type IAutoFormReturn<T extends object> = IUnionToIntersection<
 export type AutoFormField<T = unknown, TInitialItem = T> = (
   | TComponent
   | ({
-      initialValue: (initialItem?: any) => InitialValueType;
+      initialValue: (initialItem?: T) => InitialValueType;
       validator?: IAutoFormValidator[keyof IAutoFormValidator] | any;
       helper: string;
       label: string;
@@ -167,7 +169,7 @@ export type IAutoFormForm = UseFormReturn<
 
 export interface AutoFormProps<
   T extends object,
-  TInitialItem extends object = T
+  TInitialItem extends object = T,
 > extends Omit<React.HTMLAttributes<HTMLFormElement>, "onSubmit"> {
   fields: T extends unknown ? IUseFieldsFields<T, TInitialItem> : T;
   labelsClassName?: string;
@@ -179,9 +181,9 @@ export interface AutoFormProps<
       },
       any,
       FieldValues
-    >
+    >,
   ) => void;
-  initialItem?: unknown;
+  initialItem?: T;
   submitBtnText?: React.ReactNode;
   submitBtnClassName?: string;
   submitButtonVariant?: ButtonProps["variant"];
@@ -253,7 +255,7 @@ export function AutoForm<T extends object>({
     let zObject = z.object(
       formatValuesWithDots(schemas, {
         useZodObject: true,
-      }) as z.ZodRawShape
+      }) as z.ZodRawShape,
     );
 
     if (superRefine) {
@@ -374,7 +376,7 @@ export function AutoForm<T extends object>({
   };
 
   const renderItems = (
-    __fields: typeof _fields = _fields
+    __fields: typeof _fields = _fields,
   ): React.ReactNode[] => {
     return Object.keys(__fields).map((key) => {
       const formField = __fields[key] as Exclude<
@@ -399,7 +401,7 @@ export function AutoForm<T extends object>({
           {...(formField.props ?? {})}
         >
           {renderItems(
-            (formField as unknown as { items: typeof _fields }).items
+            (formField as unknown as { items: typeof _fields }).items,
           )}
         </div>
       ) : (
@@ -412,7 +414,7 @@ export function AutoForm<T extends object>({
             <FormItem
               className={cn(
                 "flex flex-col gap-1 space-y-0",
-                formField?.className
+                formField?.className,
               )}
             >
               {formField.label && (
@@ -421,7 +423,7 @@ export function AutoForm<T extends object>({
                   className={cn(
                     "block mb-[10px]",
                     labelsClassName,
-                    formField.labelClassName
+                    formField.labelClassName,
                   )}
                 >
                   {completeField.label}
@@ -442,7 +444,7 @@ export function AutoForm<T extends object>({
                     placeholder: completeField.placeholder,
                     invalid: !loaded && !!form.formState.errors[key],
                     form,
-                  }
+                  },
                 )}
               </FormControl>
               {completeField.helper && (
@@ -464,7 +466,7 @@ export function AutoForm<T extends object>({
         className={cn(
           "space-y-[15px]",
           { "opacity-75 transition": isLoading },
-          className
+          className,
         )}
       >
         {renderItems()}
@@ -493,7 +495,7 @@ export function AutoForm<T extends object>({
 export function deepEqual(
   a: any,
   b: any,
-  visited: WeakMap<object, object> = new WeakMap()
+  visited: WeakMap<object, object> = new WeakMap(),
 ): boolean {
   if (Object.is(a, b)) return true;
 
@@ -518,7 +520,7 @@ export function deepEqual(
     const aValues = Array.from(a);
     const bValues = Array.from(b);
     return aValues.every((val) =>
-      bValues.some((bVal) => deepEqual(val, bVal, visited))
+      bValues.some((bVal) => deepEqual(val, bVal, visited)),
     );
   }
 

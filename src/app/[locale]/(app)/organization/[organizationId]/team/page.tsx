@@ -6,7 +6,7 @@ import { AvatarItem } from "@/components/avatar-item";
 import { createMemberAction } from "@/lib/actions/member/create";
 import { listMembersAction } from "@/lib/actions/member/list";
 import { useValidators } from "@/components/ui/auto-form/utils/validators";
-import { UserRole } from "@/generated/prisma";
+import { Member, User, UserRole } from "@/generated/prisma";
 import { updateMemberAction } from "@/lib/actions/member/update";
 import { useState } from "react";
 
@@ -56,7 +56,7 @@ export default function OrganizationTeamPage() {
           label: "Nom",
           validator: v.string,
           initialValue(item) {
-            return item.user.name;
+            return item?.user?.name;
           },
         },
         email: {
@@ -64,15 +64,15 @@ export default function OrganizationTeamPage() {
           type: "email",
           validator: v.email,
           initialValue(item) {
-            return item.user.email;
+            return item?.user?.email;
           },
         },
         password: {
           label: "Mot de passe",
           type: "password",
           validator: v.password,
-          initialValue(item) {
-            return item.user.password;
+          initialValue() {
+            return "";
           },
         },
         role: {
@@ -90,7 +90,7 @@ export default function OrganizationTeamPage() {
           label: "CNI",
           validator: v.string,
           initialValue(item) {
-            return item.user.cni;
+            return item?.cni;
           },
         },
         blueNumber: {
@@ -98,7 +98,7 @@ export default function OrganizationTeamPage() {
           type: "phone",
           validator: v.string,
           initialValue(item) {
-            return item.user.blueNumber;
+            return item?.blueNumber;
           },
         },
         otherNumber: {
@@ -106,7 +106,7 @@ export default function OrganizationTeamPage() {
           type: "phone",
           validator: v.string,
           initialValue(item) {
-            return item.user.otherNumber;
+            return item?.otherNumber;
           },
         },
         ...(isBA
@@ -116,7 +116,9 @@ export default function OrganizationTeamPage() {
                 type: "combobox",
                 validator: v.string,
                 initialValue(item) {
-                  return item.user.teamLeaderId;
+                  return (
+                    (item as Member & { user: User })?.user?.teamLeaderId ?? ""
+                  );
                 },
                 props: {
                   action: async (keyword: string) => {

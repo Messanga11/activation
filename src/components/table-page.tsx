@@ -35,7 +35,7 @@ export interface TablePageColumn<T> {
   cellClassName?: string;
 }
 
-export interface TablePageProps<T> {
+export interface TablePageProps<T extends object> {
   title: string;
   description: string;
   columns: TablePageColumn<T>[];
@@ -61,7 +61,7 @@ export interface TablePageProps<T> {
   createAction?: (data: any) => Promise<{ success: boolean; error?: string }>;
   updateAction?: (data: any) => Promise<{ success: boolean; error?: string }>;
   deleteAction?: (data: any) => Promise<{ success: boolean; error?: string }>;
-  formFields?: AutoFormProps<any>["fields"];
+  formFields?: AutoFormProps<T>["fields"];
   initialFormData?: any;
   className?: string;
   resolveData?: (data: any) => T[];
@@ -84,7 +84,7 @@ export function TablePage<T extends object>({
   createAction,
   updateAction,
   deleteAction,
-  formFields = {},
+  formFields = {} as AutoFormProps<T>["fields"],
   className,
   resolveData,
   otherActions,
@@ -136,8 +136,8 @@ export function TablePage<T extends object>({
           transformedKey = transformedKey.replace(`[${k}]`, _params[k]);
         });
         return [transformedKey, value];
-      }
-    )
+      },
+    ),
   );
   const availableActions = access?.[pathname.replace(`/${_params.locale}`, "")];
   const canCreate =
@@ -246,7 +246,7 @@ export function TablePage<T extends object>({
       header: "Actions",
       cell: (row: any) => (
         <div className="flex space-x-2">
-          {...otherActions?.(row) ?? []}
+          {...(otherActions?.(row) ?? [])}
           {canEdit && updateAction && (
             <Button
               variant="outline"
@@ -300,7 +300,7 @@ export function TablePage<T extends object>({
               <DialogContent
                 className={cn(
                   isLoading && "pointer-events-none",
-                  "p-0 overflow-hidden"
+                  "p-0 overflow-hidden",
                 )}
               >
                 <ScrollArea className="max-h-[calc(100vh-20rem)]">

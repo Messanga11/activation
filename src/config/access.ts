@@ -28,4 +28,9 @@ export const ACCESS = {
       create: false,
     },
   },
+  [UserRole.ACTIVATOR]: {
+    [ROUTES.organizationSimSales("[organizationId]")]: {
+      read: true,
+    },
+  },
 };

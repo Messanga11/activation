@@ -36,7 +36,7 @@ export default async function OrganizationLayout({
 
     if (
       ![UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.SUPERVISOR].includes(
-        session.user.role as "ADMIN"
+        session.user.role as "ADMIN",
       )
     ) {
       const userRole = session.user.role;
@@ -49,24 +49,24 @@ export default async function OrganizationLayout({
               transformedKey = transformedKey.replace(`[${k}]`, _params[k]);
             });
             return [transformedKey, value];
-          }
-        )
+          },
+        ),
       );
       const fullUrl = _headers.get("x-current-url");
       const path = fullUrl?.startsWith(`https`)
         ? fullUrl?.replace(
             `https://${_headers.get("host")}/${_params.locale}`,
-            ""
+            "",
           )
         : (fullUrl?.replace(
             `http://${_headers.get("host")}/${_params.locale}`,
-            ""
+            "",
           ) as keyof typeof access);
       const availableActions = access?.[path];
 
       if (!availableActions) {
-        return [UserRole.BA, UserRole.TEAM_LEADER].includes(
-          userRole as "BA" | "TEAM_LEADER"
+        return [UserRole.BA, UserRole.TEAM_LEADER, UserRole.ACTIVATOR].includes(
+          userRole as "BA" | "TEAM_LEADER" | "ACTIVATOR",
         )
           ? redirect(ROUTES.organizationSimSales(session.user.organizationId))
           : redirect(ROUTES.organization(session.user.organizationId));
