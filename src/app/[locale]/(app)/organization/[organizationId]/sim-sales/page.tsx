@@ -54,11 +54,18 @@ export default function SimSalesPage() {
                 title: !row.status
                   ? "Démarrer l'activation"
                   : row.status === SimSaleStatus.REJECTED
-                  ? "Relancer l'activation"
-                  : row.status === SimSaleStatus.ACTIVATING
-                  ? "Terminer l'activation"
-                  : "",
-                message: "Voulez-vous vraiment démarrer l'activation ?",
+                    ? "Relancer l'activation"
+                    : row.status === SimSaleStatus.ACTIVATING
+                      ? "Terminer l'activation"
+                      : "",
+                message:
+                  row.status === SimSaleStatus.ACTIVATING
+                    ? "Voulez-vous vraiment démarrer l'activation ?"
+                    : row.status === SimSaleStatus.REJECTED
+                      ? "Voulez-vous vraiment relancer l'activation ?"
+                      : row.status === SimSaleStatus.ACTIVATED
+                        ? "Voulez-vous vraiment terminer l'activation ?"
+                        : "",
                 onConfirm: async () => {
                   const data = await updateStatusAction({
                     id: row.id,
@@ -77,13 +84,14 @@ export default function SimSalesPage() {
             {!row.status
               ? "Démarer l'activation"
               : row.status === SimSaleStatus.REJECTED
-              ? "Relancer l'activation"
-              : row.status === SimSaleStatus.ACTIVATING
-              ? "Terminer l'activation"
-              : ""}
+                ? "Relancer l'activation"
+                : row.status === SimSaleStatus.ACTIVATING
+                  ? "Terminer l'activation"
+                  : ""}
           </Button>
         ) : null,
-        row.status === SimSaleStatus.ACTIVATING ? (
+        row.status === SimSaleStatus.ACTIVATING ||
+        row.status === SimSaleStatus.ACTIVATED ? (
           <RejectSimSale key={`reject-${row.id}`} row={row} />
         ) : null,
       ]}
@@ -92,12 +100,12 @@ export default function SimSalesPage() {
         (row as any).isDuplicated
           ? "bg-orange-800"
           : row.status === SimSaleStatus.ACTIVATING
-          ? "bg-blue-800"
-          : row.status === SimSaleStatus.ACTIVATED
-          ? "bg-green-800"
-          : row.status === SimSaleStatus.REJECTED
-          ? "bg-destructive/20"
-          : ""
+            ? "bg-blue-800"
+            : row.status === SimSaleStatus.ACTIVATED
+              ? "bg-green-800"
+              : row.status === SimSaleStatus.REJECTED
+                ? "bg-destructive/20"
+                : ""
       }
       columns={[
         {

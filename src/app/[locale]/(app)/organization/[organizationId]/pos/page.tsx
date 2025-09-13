@@ -2,10 +2,13 @@
 
 import { TablePage } from "@/components/table-page";
 import { useValidators } from "@/components/ui/auto-form/utils/validators";
+
 import { PosType } from "@/generated/prisma";
-import { listPosAction } from "@/lib/actions/pos/list";
+
 import { createPosAction, updatePosAction } from "@/lib/actions/pos/create";
+import { listPosAction } from "@/lib/actions/pos/list";
 import { getDsmsAction } from "@/lib/actions/dsm/list";
+
 import { useTranslations } from "next-intl";
 
 export default function OrganizationPosPage() {

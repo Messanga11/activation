@@ -82,12 +82,15 @@ export const updateSimStatus = async (
   const simSale = await db.simSale.findUnique({ where: { id } });
   if (!simSale) throw new NotFoundError("Sim Sale");
 
-  if (simSale.status === SimSaleStatus.ACTIVATED)
-    throw new Error("Sim Sale status is already treated");
+  // if (simSale.status === SimSaleStatus.ACTIVATED)
+  //   throw new Error("Sim Sale status is already treated");
 
   let status: SimSaleStatus | undefined;
 
-  if (simSale.status === SimSaleStatus.ACTIVATING) {
+  if (
+    simSale.status === SimSaleStatus.ACTIVATING ||
+    simSale.status === SimSaleStatus.ACTIVATED
+  ) {
     status = isRejected ? SimSaleStatus.REJECTED : SimSaleStatus.ACTIVATED;
   } else {
     status = SimSaleStatus.REJECTED;
